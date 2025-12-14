@@ -18,6 +18,7 @@ import com.sb.movie.repositories.UserRepository;
 import com.sb.movie.request.SeatLockRequest;
 import com.sb.movie.request.TicketRequest;
 import com.sb.movie.response.SeatLockResponse;
+import com.sb.movie.response.TicketHistoryResponse;
 import com.sb.movie.response.TicketResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Date;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -322,5 +325,94 @@ public class TicketServiceImpl implements TicketService {
 
     private String listToString(List<String> requestSeats) {
         return String.join(", ", requestSeats);
+    }
+
+    @Override
+    public List<TicketHistoryResponse> getMyTickets(String userEmail) {
+        User user = userRepository.findByEmailId(userEmail)
+                .orElseThrow(() -> new UserDoesNotExists());
+
+        List<Ticket> tickets = ticketRepository.findByUser(user);
+        return tickets.stream()
+                .map(this::convertToHistoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public TicketHistoryResponse getTicketById(Integer ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+        return convertToHistoryResponse(ticket);
+    }
+
+    @Override
+    @Transactional
+    public String cancelTicket(Integer ticketId, String userEmail) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        User user = userRepository.findByEmailId(userEmail)
+                .orElseThrow(() -> new UserDoesNotExists());
+
+        if (!ticket.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("You are not authorized to cancel this ticket");
+        }
+
+        Show show = ticket.getShow();
+        LocalDate showDate = show.getDate().toLocalDate();
+        LocalDate currentDate = LocalDate.now();
+
+        if (showDate.isBefore(currentDate)) {
+            throw new RuntimeException("Cannot cancel ticket for past shows");
+        }
+
+        LocalDateTime showDateTime = LocalDateTime.of(showDate, show.getTime().toLocalTime());
+        LocalDateTime now = LocalDateTime.now();
+        long hoursUntilShow = java.time.Duration.between(now, showDateTime).toHours();
+
+        if (hoursUntilShow < 2) {
+            throw new RuntimeException("Cannot cancel ticket less than 2 hours before show");
+        }
+
+        String[] seatNumbers = ticket.getBookedSeats().split(", ");
+        List<Integer> seatIds = getSeatIdsBySeatNumbers(show.getShowSeatList(), List.of(seatNumbers));
+
+        List<ShowSeat> seats = showSeatRepository.findAllById(seatIds);
+        for (ShowSeat seat : seats) {
+            seat.setStatus(SeatStatus.AVAILABLE);
+            seat.setLockedByUserId(null);
+            seat.setLockedAt(null);
+        }
+        showSeatRepository.saveAll(seats);
+
+        ticketRepository.delete(ticket);
+
+        String refundMessage;
+        if (hoursUntilShow >= 24) {
+            refundMessage = "Ticket cancelled successfully. 100% refund will be processed.";
+        } else {
+            refundMessage = "Ticket cancelled successfully. 50% refund will be processed.";
+        }
+
+        log.info("Ticket {} cancelled by user {}", ticketId, user.getId());
+        return refundMessage;
+    }
+
+    private TicketHistoryResponse convertToHistoryResponse(Ticket ticket) {
+        Show show = ticket.getShow();
+        return TicketHistoryResponse.builder()
+                .ticketId(ticket.getTicketId())
+                .bookedAt(ticket.getBookedAt())
+                .totalPrice(ticket.getTotalTicketsPrice())
+                .bookedSeats(ticket.getBookedSeats())
+                .showId(show.getShowId())
+                .showDate(show.getDate())
+                .showTime(show.getTime())
+                .eventName(show.getEvent().getName())
+                .eventType(show.getEvent().getEventType().toString())
+                .theaterName(show.getTheater().getName())
+                .theaterAddress(show.getTheater().getAddress())
+                .city(show.getTheater().getCity())
+                .build();
     }
 }

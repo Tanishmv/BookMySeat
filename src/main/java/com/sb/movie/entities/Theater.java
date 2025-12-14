@@ -31,9 +31,11 @@ public class Theater {
 
     @OneToMany(mappedBy = "theater", cascade = CascadeType.ALL)
     @JsonIgnore
+    @Builder.Default
     private List<TheaterSeat> theaterSeatList = new ArrayList<>();
 
     @OneToMany(mappedBy = "theater", cascade = CascadeType.ALL)
     @JsonIgnore
+    @Builder.Default
     private List<Show> showList = new ArrayList<>();
 }

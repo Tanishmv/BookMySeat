@@ -87,4 +87,20 @@ public class TheaterServiceImpl implements TheaterService{
 
         return "Theater Seats have been added successfully";
     }
+
+    @Override
+    public List<Theater> getAllTheaters() {
+        return theaterRepository.findAll();
+    }
+
+    @Override
+    public Theater getTheaterById(Integer id) throws TheaterIsNotExist {
+        return theaterRepository.findById(id)
+                .orElseThrow(() -> new TheaterIsNotExist());
+    }
+
+    @Override
+    public List<Theater> getTheatersByCity(String city) {
+        return theaterRepository.findByCity(city);
+    }
 }

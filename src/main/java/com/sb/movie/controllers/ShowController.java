@@ -3,6 +3,7 @@ package com.sb.movie.controllers;
 import com.sb.movie.entities.Show;
 import com.sb.movie.request.ShowRequest;
 import com.sb.movie.request.ShowSeatRequest;
+import com.sb.movie.response.SeatAvailabilityResponse;
 import com.sb.movie.services.ShowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -90,6 +91,40 @@ public class ShowController {
     public ResponseEntity<Map<String, Map<String, List<Show>>>> getShowsGroupedByDateAndVenue() {
         Map<String, Map<String, List<Show>>> groupedShows = showService.getShowsGroupedByDateAndVenue();
         return new ResponseEntity<>(groupedShows, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/seats")
+    @Operation(summary = "Get real-time seat availability",
+               description = "View seat availability with counts and detailed seat status for a show")
+    public ResponseEntity<?> getSeatAvailability(@PathVariable Integer id) {
+        try {
+            SeatAvailabilityResponse availability = showService.getSeatAvailability(id);
+            return new ResponseEntity<>(availability, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update show", description = "Update show date and time")
+    public ResponseEntity<String> updateShow(@PathVariable Integer id, @RequestBody ShowRequest showRequest) {
+        try {
+            String result = showService.updateShow(id, showRequest);
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete show", description = "Delete a show (only if no bookings exist)")
+    public ResponseEntity<String> deleteShow(@PathVariable Integer id) {
+        try {
+            String result = showService.deleteShow(id);
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
 }

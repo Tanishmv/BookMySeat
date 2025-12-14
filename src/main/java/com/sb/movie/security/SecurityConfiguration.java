@@ -34,13 +34,15 @@ public class SecurityConfiguration {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(c -> c.disable())
                 .authorizeHttpRequests(req ->
-                        req.requestMatchers("/user/**", "/api/auth/**").permitAll()
+                        req.requestMatchers("/user/addNew", "/api/auth/**").permitAll()
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                                .requestMatchers("/api/events/**", "/api/shows/**").permitAll()  // Allow browsing
+                                .requestMatchers("/api/events/**", "/api/shows/**").permitAll()  // Allow browsing events and shows
+                                .requestMatchers("/theater", "/theater/*", "/theater/city/*").permitAll()  // Allow browsing theaters (GET)
+                                .requestMatchers("/theater/**").hasAnyAuthority("ROLE_ADMIN")  // Theater management (POST/PUT) - admin only
                                 .requestMatchers("/movie/**").hasAnyAuthority("ROLE_ADMIN")
                                 .requestMatchers("/show/**").hasAnyAuthority("ROLE_ADMIN")
-                                .requestMatchers("/theater/**").hasAnyAuthority("ROLE_ADMIN")
                                 .requestMatchers("/ticket/**", "/api/bookings/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
+                                .requestMatchers("/user/me/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")  // User profile endpoints
                                 .anyRequest().authenticated())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())

@@ -2,6 +2,7 @@ package com.sb.movie.services;
 
 import com.sb.movie.converter.ShowConvertor;
 import com.sb.movie.entities.*;
+import com.sb.movie.enums.SeatStatus;
 import com.sb.movie.enums.SeatType;
 import com.sb.movie.exceptions.EventDoesNotExist;
 import com.sb.movie.exceptions.ShowDoesNotExists;
@@ -11,6 +12,8 @@ import com.sb.movie.repositories.ShowRepository;
 import com.sb.movie.repositories.TheaterRepository;
 import com.sb.movie.request.ShowRequest;
 import com.sb.movie.request.ShowSeatRequest;
+import com.sb.movie.response.SeatAvailabilityResponse;
+import com.sb.movie.response.SeatInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -169,5 +172,106 @@ public class ShowServiceImpl implements ShowService{
                                 Collectors.toList()
                         )
                 ));
+    }
+
+    @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "shows", allEntries = true),
+            @CacheEvict(value = "showById", key = "#showId"),
+            @CacheEvict(value = "showsByEvent", allEntries = true),
+            @CacheEvict(value = "showsByTheater", allEntries = true),
+            @CacheEvict(value = "showsByDate", allEntries = true),
+            @CacheEvict(value = "showsGrouped", allEntries = true)
+    })
+    public String updateShow(Integer showId, ShowRequest showRequest) throws ShowDoesNotExists {
+        log.info("Updating show ID: {}", showId);
+
+        Show show = showRepository.findById(showId)
+                .orElseThrow(() -> new ShowDoesNotExists());
+
+        if (showRequest.getShowDate() != null) {
+            show.setDate(showRequest.getShowDate());
+        }
+        if (showRequest.getShowStartTime() != null) {
+            show.setTime(showRequest.getShowStartTime());
+        }
+
+        showRepository.save(show);
+        log.info("Show ID: {} updated successfully and cache evicted", showId);
+        return "Show updated successfully";
+    }
+
+    @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "shows", allEntries = true),
+            @CacheEvict(value = "showById", key = "#showId"),
+            @CacheEvict(value = "showsByEvent", allEntries = true),
+            @CacheEvict(value = "showsByTheater", allEntries = true),
+            @CacheEvict(value = "showsByDate", allEntries = true),
+            @CacheEvict(value = "showsGrouped", allEntries = true)
+    })
+    public String deleteShow(Integer showId) throws ShowDoesNotExists {
+        log.info("Deleting show ID: {}", showId);
+
+        Show show = showRepository.findById(showId)
+                .orElseThrow(() -> new ShowDoesNotExists());
+
+        if (!show.getTicketList().isEmpty()) {
+            throw new RuntimeException("Cannot delete show with existing bookings");
+        }
+
+        showRepository.delete(show);
+        log.info("Show ID: {} deleted successfully and cache evicted", showId);
+        return "Show deleted successfully";
+    }
+
+    @Override
+    @Cacheable(value = "seatAvailability", key = "#showId", unless = "#result == null")
+    public SeatAvailabilityResponse getSeatAvailability(Integer showId) throws ShowDoesNotExists {
+        log.debug("Fetching seat availability for show ID: {}", showId);
+
+        Show show = showRepository.findById(showId)
+                .orElseThrow(() -> new ShowDoesNotExists());
+
+        List<ShowSeat> showSeats = show.getShowSeatList();
+
+        // Calculate seat statistics
+        long totalSeats = showSeats.size();
+        long availableSeats = showSeats.stream()
+                .filter(seat -> seat.getStatus() == SeatStatus.AVAILABLE)
+                .count();
+        long lockedSeats = showSeats.stream()
+                .filter(seat -> seat.getStatus() == SeatStatus.LOCKED)
+                .count();
+        long bookedSeats = showSeats.stream()
+                .filter(seat -> seat.getStatus() == SeatStatus.BOOKED)
+                .count();
+
+        // Convert seats to SeatInfo DTOs
+        List<SeatInfo> seatInfoList = showSeats.stream()
+                .map(seat -> SeatInfo.builder()
+                        .seatNo(seat.getSeatNo())
+                        .seatType(seat.getSeatType())
+                        .price(seat.getPrice())
+                        .status(seat.getStatus())
+                        .build())
+                .collect(Collectors.toList());
+
+        return SeatAvailabilityResponse.builder()
+                .showId(show.getShowId())
+                .showDate(show.getDate())
+                .showTime(show.getTime())
+                .eventName(show.getEvent().getName())
+                .theaterName(show.getTheater().getName())
+                .theaterAddress(show.getTheater().getAddress())
+                .city(show.getTheater().getCity())
+                .totalSeats((int) totalSeats)
+                .availableSeats((int) availableSeats)
+                .lockedSeats((int) lockedSeats)
+                .bookedSeats((int) bookedSeats)
+                .seats(seatInfoList)
+                .build();
     }
 }
