@@ -19,6 +19,45 @@ services:
       timeout: 3s
       retries: 5
 
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: bookmyseat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bookmyseat_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5450:5432"  # Map to 5450 on host to avoid conflict with local PostgreSQL
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bookmyseat-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # pgAdmin - PostgreSQL Admin UI
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: bookmyseat-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5051:80"  # Using 5051 to avoid conflict with local pgAdmin
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - bookmyseat-network
+    depends_on:
+      - postgres
+
   # Zookeeper (required for Kafka)
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -27,6 +66,9 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
     networks:
       - bookmyseat-network
 
@@ -56,6 +98,14 @@ services:
 
 volumes:
   redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  zookeeper_data:
+    driver: local
+  zookeeper_logs:
     driver: local
   kafka_data:
     driver: local
