@@ -24,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,13 +47,17 @@ public class TicketServiceImpl implements TicketService {
     private final ShowSeatRepository showSeatRepository;
     private final SeatLockingService seatLockingService;
     private final BookingEventProducer bookingEventProducer;
+    private final org.springframework.cache.CacheManager cacheManager;
 
     @Value("${booking.seat-lock-timeout:10}")
     private int seatLockTimeoutMinutes;
 
     @Override
     @Transactional
-    @CacheEvict(value = "showById", key = "#seatLockRequest.showId")
+    @Caching(evict = {
+            @CacheEvict(value = "showById", key = "#seatLockRequest.showId"),
+            @CacheEvict(value = "seatAvailability", key = "#seatLockRequest.showId")
+    })
     public SeatLockResponse lockSeats(SeatLockRequest seatLockRequest) {
         log.info("Locking seats for user {} for show {}",
                 seatLockRequest.getUserId(), seatLockRequest.getShowId());
@@ -109,7 +114,10 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "showById", key = "#seatLockRequest.showId")
+    @Caching(evict = {
+            @CacheEvict(value = "showById", key = "#seatLockRequest.showId"),
+            @CacheEvict(value = "seatAvailability", key = "#seatLockRequest.showId")
+    })
     public void releaseSeats(SeatLockRequest seatLockRequest) {
         log.info("Releasing seats for user {} for show {}",
                 seatLockRequest.getUserId(), seatLockRequest.getShowId());
@@ -137,7 +145,10 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "showById", key = "#ticketRequest.showId")
+    @Caching(evict = {
+            @CacheEvict(value = "showById", key = "#ticketRequest.showId"),
+            @CacheEvict(value = "seatAvailability", key = "#ticketRequest.showId")
+    })
     public TicketResponse ticketBooking(TicketRequest ticketRequest) {
         log.info("Processing ticket booking for user {} for show {}",
                 ticketRequest.getUserId(), ticketRequest.getShowId());
@@ -386,6 +397,15 @@ public class TicketServiceImpl implements TicketService {
         showSeatRepository.saveAll(seats);
 
         ticketRepository.delete(ticket);
+
+        // Evict caches for this specific show
+        Integer showId = show.getShowId();
+        if (cacheManager.getCache("showById") != null) {
+            cacheManager.getCache("showById").evict(showId);
+        }
+        if (cacheManager.getCache("seatAvailability") != null) {
+            cacheManager.getCache("seatAvailability").evict(showId);
+        }
 
         String refundMessage;
         if (hoursUntilShow >= 24) {

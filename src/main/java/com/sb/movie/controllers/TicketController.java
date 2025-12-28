@@ -19,14 +19,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/ticket")
-@Tag(name = "Ticket", description = "Ticket booking and seat management APIs")
+@Tag(name = "Booking & Tickets", description = "Seat locking, ticket booking, and booking history management")
 public class TicketController {
 
     @Autowired
     private TicketService ticketService;
 
     @PostMapping("/lock-seats")
-    @Operation(summary = "Lock seats", description = "Lock selected seats for 10 minutes before booking")
+    @Operation(summary = "Lock seats temporarily", description = "Lock selected seats for 10 minutes to allow user to complete payment")
     public ResponseEntity<Object> lockSeats(@RequestBody SeatLockRequest seatLockRequest) {
         try {
             SeatLockResponse result = ticketService.lockSeats(seatLockRequest);
@@ -37,7 +37,7 @@ public class TicketController {
     }
 
     @PostMapping("/book")
-    @Operation(summary = "Book tickets", description = "Confirm booking for locked seats")
+    @Operation(summary = "Confirm ticket booking", description = "Finalize booking and mark seats as BOOKED (works with or without prior seat lock)")
     public ResponseEntity<Object> ticketBooking(@RequestBody TicketRequest ticketRequest) {
         try {
             TicketResponse result = ticketService.ticketBooking(ticketRequest);

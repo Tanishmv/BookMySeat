@@ -99,18 +99,32 @@ public class SeatLockingService {
         log.info("Releasing {} seats for user {}", seatIds.size(), userId);
 
         List<ShowSeat> seats = showSeatRepository.findAllById(seatIds);
+        int releasedCount = 0;
 
         for (ShowSeat seat : seats) {
+            if (seat.getStatus() == SeatStatus.BOOKED) {
+                throw new IllegalStateException("Cannot release seat " + seat.getSeatNo() +
+                        " - it is already BOOKED. Use ticket cancellation instead.");
+            }
+
             if (seat.getStatus() == SeatStatus.LOCKED &&
                     seat.getLockedByUserId().equals(userId)) {
                 seat.setStatus(SeatStatus.AVAILABLE);
                 seat.setLockedAt(null);
                 seat.setLockedByUserId(null);
+                releasedCount++;
+            } else if (seat.getStatus() == SeatStatus.LOCKED) {
+                throw new IllegalStateException("Seat " + seat.getSeatNo() +
+                        " is locked by another user");
             }
         }
 
+        if (releasedCount == 0) {
+            throw new IllegalStateException("No seats were released - seats are not locked by you");
+        }
+
         showSeatRepository.saveAll(seats);
-        log.info("Successfully released {} seats", seats.size());
+        log.info("Successfully released {} seats", releasedCount);
     }
 
     /**

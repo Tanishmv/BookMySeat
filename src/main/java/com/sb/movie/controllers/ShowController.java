@@ -8,7 +8,6 @@ import com.sb.movie.services.ShowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +25,7 @@ public class ShowController {
     private final ShowService showService;
 
     @PostMapping("/addNew")
+    @Operation(summary = "Create new show", description = "Create a new show for an event at a specific venue and time (Admin only)")
     public ResponseEntity<String> addShow(@RequestBody ShowRequest showRequest) {
         try {
             String result = showService.addShow(showRequest);
@@ -36,6 +36,7 @@ public class ShowController {
     }
 
     @PostMapping("/associateSeats")
+    @Operation(summary = "Associate seats with show", description = "Set seat prices for a show (Admin only)")
     public ResponseEntity<String> associateShowSeats(@RequestBody ShowSeatRequest showSeatRequest) {
         try {
             String result = showService.associateShowSeats(showSeatRequest);
@@ -79,10 +80,14 @@ public class ShowController {
 
     @GetMapping("/date/{date}")
     @Operation(summary = "Get shows by date", description = "Retrieve all shows on a specific date (format: yyyy-MM-dd)")
-    public ResponseEntity<List<Show>> getShowsByDate(
-            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
-        List<Show> shows = showService.getShowsByDate(date);
-        return new ResponseEntity<>(shows, HttpStatus.OK);
+    public ResponseEntity<?> getShowsByDate(@PathVariable String date) {
+        try {
+            Date sqlDate = Date.valueOf(date);
+            List<Show> shows = showService.getShowsByDate(sqlDate);
+            return new ResponseEntity<>(shows, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>("Invalid date format. Use yyyy-MM-dd (e.g., 2025-12-29)", HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/grouped")

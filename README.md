@@ -1,289 +1,300 @@
-# BookMySeat - Event Booking APIs Spring Boot Project
+# BookMySeat - Event & Ticket Booking System
 
-- This project is a Spring Boot implementation of the backend APIs for an event booking system similar to the popular platform "BookMyShow". It provides a set of RESTful APIs that enable client applications to interact with the booking system and perform various operations.
-- This project is a comprehensive event booking system for theater-style seated events. Users can add events (movies, concerts, theater shows, opera, comedy, dance), venues with auditorium seating, shows, and book tickets. The system includes advanced seat locking, real-time availability, Redis caching, and Kafka notifications.
+A backend API for event and ticket booking built with Spring Boot. Allows users to browse events, view showtimes, select seats, and book tickets with conflict-free seat allocation.
+
 
 ## Features
-* **User Management** → Users can register, log in with JWT authentication, and manage their profile
-* **Event Management** → Admin users can create, update, and delete events (movies, concerts, theater, comedy, opera, dance)
-* **Venue Management** → Admin users can add venues/theaters with seating layouts (Premium/Classic seats)
-* **Show Scheduling** → Create shows linking events to venues with specific date/time slots
-* **Advanced Booking System** →
-  - Seat locking with pessimistic locks and SERIALIZABLE isolation
-  - 10-minute timeout with automatic lock release
-  - Real-time seat availability
-  - Prevents double-booking with ACID transactions
-* **Search & Browse** → Filter events by city, date, genre, language, type
-* **Redis Caching** → High-performance caching for frequently accessed event data
-* **Kafka Notifications** → Asynchronous booking confirmation events
-* **Security** → JWT authentication, BCrypt password hashing, role-based access control
 
-## Technologies Used
-* **Java 17+**
-* **Spring Boot 3.3.0**
-* **Spring Data JPA** (with Hibernate)
-* **PostgreSQL** (Primary database)
-* **Redis** (Caching layer)
-* **Apache Kafka** (Message queue for async notifications)
-* **Spring Security** (JWT authentication & authorization)
-* **Testcontainers** (Integration testing)
-* **Docker & Docker Compose** (Containerization)
-* **Maven** (Dependency management)
+### User Management
+- User registration with BCrypt password hashing
+- JWT-based authentication with access & refresh tokens
+- User profile management (name, email, phone)
+- Role-based access control (USER/ADMIN)
+- Admin-only operations for event/show/venue management
+
+### Event & Show Management
+- CRUD operations for events
+- Multiple shows per event with date/time and venue
+- Metadata support: language, genre, duration, rating, director, performers
+- Admin-only event and show management
+
+### Venue & Seat Layout
+- Venues with auditoriums/screens
+- Seating layout with rows, columns, and seat categories (Premium, Classic)
+- Unique seat identifiers (e.g., "A1", "B5")
+- Seat pricing per show
+
+### Searching and Browsing
+- Browse events by city, date, genre, language, event type
+- View shows grouped by date and venue
+- Real-time seat availability for each show
+- Redis caching for event and show listings
+
+### Booking & Seat Allocation
+
+**Booking Flow:**
+1. Lock seats (`POST /ticket/lock-seats`) - holds seats for 10 minutes
+2. Confirm booking (`POST /ticket/book`) - finalizes booking
+
+**Conflict Prevention:**
+- ACID transactions with SERIALIZABLE isolation
+- Pessimistic write locks using JPA `@Lock`
+- Database-level `SELECT ... FOR UPDATE` queries
+- Automatic lock expiry after 10 minutes
+- Scheduled job releases expired locks every 2 minutes
+
+**Booking Confirmation Includes:**
+- Booking ID
+- Booked seats
+- Show details (event, venue, date, time)
+- Total price
+- Timestamp
+
+### Notifications via Message Queue
+- Apache Kafka integration
+- Publishes `BookingConfirmedEvent` after successful booking
+- Publishes `BookingFailedEvent` after failed booking
+- Consumer simulates email/SMS notifications
+- Booking succeeds even if notification fails
+
+---
+
+## Technology Stack
+
+| Category | Technologies |
+|----------|-------------|
+| Backend | Spring Boot 3.3.0, Java 17 |
+| Security | Spring Security, JWT, BCrypt |
+| Database | PostgreSQL 16, Spring Data JPA, Hibernate |
+| Caching | Redis 7, Jedis, Spring Cache |
+| Messaging | Apache Kafka 7.5, Zookeeper |
+| API Docs | Swagger/OpenAPI 3.0 |
+| Testing | JUnit, Mockito, Testcontainers |
+| DevOps | Docker, Docker Compose |
+| Build | Maven 3.6+ |
+
+---
+
+## Architecture
+
+![System Architecture](Architecture.png)
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 - Java 17 or higher
 - Maven 3.6+
-- Docker & Docker Compose (for infrastructure)
+- Docker & Docker Compose
 
-### Setup Steps
+### Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd bookmyseat
-   ```
-
-2. **Start infrastructure services**
+1. **Start infrastructure services**
    ```bash
    docker-compose up -d
    ```
-   This starts PostgreSQL, Redis, and Kafka.
 
-3. **Configure application** (optional)
-   - Database settings are in `src/main/resources/application.properties`
-   - Default configuration works with Docker Compose
-
-4. **Build the project**
+2. **Build the application**
    ```bash
    mvn clean install
    ```
 
-5. **Run the application**
+3. **Run the application**
    ```bash
    mvn spring-boot:run
    ```
 
-6. **Access the application**
-   - API Base URL: `http://localhost:8081`
+4. **Access the application**
+   - API: `http://localhost:8081`
    - Swagger UI: `http://localhost:8081/swagger-ui.html`
 
-## Database Setup
-
-### Option 1: Docker Compose (Recommended)
-```bash
-docker-compose up -d
-```
-This starts PostgreSQL, Redis, and Kafka automatically.
-
-### Option 2: Manual Setup
-1. Install PostgreSQL on your local machine
-2. Create a new database named `bookmyseat_db`
-3. Update database credentials in `application.properties` if needed
-4. Install Redis (port 6379)
-5. Install Kafka (port 9092)
-
-## API Documentation
-- **Swagger UI**: `http://localhost:8081/swagger-ui.html`
-- **OpenAPI Spec**: `http://localhost:8081/v3/api-docs`
-- **cURL Examples**: See `API_TEST_COMMANDS.md` for complete test commands
-
-The Swagger documentation provides detailed information about each API endpoint, including:
-- Request/response formats
-- Authentication requirements
-- Parameter validation rules
-- Example payloads
+---
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login and get JWT token
-- `POST /api/auth/refresh` - Refresh access token
 
-### Events
-- `POST /api/events` - Create event (Admin only)
-- `GET /api/events` - Get all events
-- `GET /api/events/{id}` - Get event by ID
-- `GET /api/events/type/{type}` - Get events by type (MOVIE, CONCERT, etc.)
-- `GET /api/events/city/{city}` - Get events by city
-- `GET /api/events/genre/{genre}` - Get events by genre
-- `GET /api/events/language/{language}` - Get events by language
-- `GET /api/events/date/{date}` - Get events by date
-- `PUT /api/events/{id}` - Update event (Admin only)
-- `DELETE /api/events/{id}` - Delete event (Admin only)
-
-**Example: Create Movie Event**
-```json
-{
-    "name": "Inception",
-    "eventType": "MOVIE",
-    "duration": 148,
-    "rating": 8.8,
-    "releaseDate": "2024-12-20",
-    "genre": "THRILLER",
-    "language": "ENGLISH",
-    "director": "Christopher Nolan",
-    "cast": "Leonardo DiCaprio, Tom Hardy",
-    "description": "A mind-bending thriller",
-    "posterUrl": "https://example.com/poster.jpg",
-    "city": "Mumbai"
-}
-```
-
-### Venues (Theaters)
-- `POST /theater/addNew` - Create venue (Admin only)
-- `POST /theater/addTheaterSeat` - Add seats to venue (Admin only)
-
-**Example: Add Venue**
-```json
-{
-    "name": "PVR Cinemas Phoenix",
-    "address": "High Street Phoenix, Lower Parel, Mumbai",
-    "city": "Mumbai"
-}
-```
-
-**Example: Add Seats**
-```json
-{
-    "theaterId": 1,
-    "noOfSeatInRow": 10,
-    "noOfClassicSeat": 100,
-    "noOfPremiumSeat": 50
-}
-```
-
-### Shows
-- `POST /api/shows/addNew` - Create show (Admin only)
-- `POST /api/shows/associateSeats` - Set seat prices for show (Admin only)
-- `GET /api/shows` - Get all shows
-- `GET /api/shows/{id}` - Get show details with seat availability
-- `GET /api/shows/event/{eventId}` - Get shows for an event
-- `GET /api/shows/theater/{theaterId}` - Get shows at a venue
-- `GET /api/shows/date/{date}` - Get shows on a date
-- `GET /api/shows/grouped` - Get shows grouped by date and venue
-
-**Example: Create Show**
-```json
-{
-  "showStartTime": "18:00:00",
-  "showDate": "2024-12-20",
-  "theaterId": 1,
-  "eventId": 1
-}
-```
-
-**Example: Set Seat Prices**
-```json
-{
-  "showId": 1,
-  "priceOfPremiumSeat": 400,
-  "priceOfClassicSeat": 200
-}
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Login, returns JWT tokens |
+| POST | `/api/auth/refresh` | Refresh access token |
+| POST | `/api/auth/logout` | Logout |
 
 ### Users
-- `POST /user/addNew` - Register user
-- `GET /user/profile` - Get user profile (authenticated)
 
-**Example: Register User**
-```json
-{
-    "name": "John Doe",
-    "emailId": "john@example.com",
-    "password": "SecurePassword123!",
-    "roles": "ROLE_USER"
-}
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/user/addNew` | Register user |
+| GET | `/user/me` | Get profile |
+| PUT | `/user/me` | Update profile |
 
-### Booking
-- `POST /ticket/book` - Book tickets (authenticated)
+### Events (Admin endpoints require authorization)
 
-**Example: Book Tickets**
-```json
-{
-    "showId": 1,
-    "userId": 2,
-    "requestSeats": ["1A", "1B", "2A"]
-}
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/events` | Create event (Admin) |
+| GET | `/api/events` | Get all events |
+| GET | `/api/events/{id}` | Get event by ID |
+| GET | `/api/events/type/{type}` | Filter by type |
+| GET | `/api/events/city/{city}` | Filter by city |
+| GET | `/api/events/genre/{genre}` | Filter by genre |
+| GET | `/api/events/language/{language}` | Filter by language |
+| GET | `/api/events/date/{date}` | Filter by date |
+| GET | `/api/events/search` | Search by city and type |
+| PUT | `/api/events/{id}` | Update event (Admin) |
+| DELETE | `/api/events/{id}` | Delete event (Admin) |
 
-**Response:**
-```json
-{
-    "time": "18:00:00",
-    "date": "2024-12-20",
-    "eventName": "Inception",
-    "theaterName": "PVR Cinemas Phoenix",
-    "address": "High Street Phoenix, Mumbai",
-    "bookedSeats": "1A, 1B, 2A",
-    "totalPrice": 600
-}
-```
+**Event Types:** MOVIE, CONCERT, THEATER, DANCE_SHOW, COMEDY_SHOW, SPORTS, OPERA, EXHIBITION
 
-## Key Features Explained
+### Shows (Admin endpoints require authorization)
 
-### Advanced Seat Locking
-- Uses **SERIALIZABLE isolation** + **pessimistic locking** to prevent race conditions
-- Seats locked for 10 minutes during booking process
-- Automatic lock expiry with scheduled cleanup job
-- Prevents double-booking across concurrent users
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/shows/addNew` | Create show (Admin) |
+| POST | `/api/shows/associateSeats` | Set seat prices (Admin) |
+| GET | `/api/shows` | Get all shows |
+| GET | `/api/shows/{id}` | Get show details |
+| GET | `/api/shows/event/{eventId}` | Shows for event |
+| GET | `/api/shows/theater/{theaterId}` | Shows at venue |
+| GET | `/api/shows/date/{date}` | Shows on date |
+| GET | `/api/shows/grouped` | Grouped by date & venue |
+| GET | `/api/shows/{id}/seats` | Seat availability |
+| PUT | `/api/shows/{id}` | Update show (Admin) |
+| DELETE | `/api/shows/{id}` | Delete show (Admin) |
 
-### Redis Caching
-- Event listings cached by: type, city, genre, language, date
-- Cache invalidation on event updates
-- Significantly improves read performance
+### Tickets (All require authentication)
 
-### Kafka Event Processing
-- Asynchronous `BookingConfirmedEvent` publishing
-- Email/SMS notification simulation
-- Decoupled architecture - booking succeeds even if notifications fail
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/ticket/lock-seats` | Lock seats for 10 min |
+| POST | `/ticket/book` | Confirm booking |
+| POST | `/ticket/release-seats` | Release locked seats |
+| GET | `/ticket/me` | My booking history |
+| GET | `/ticket/{ticketId}` | Ticket details |
+| DELETE | `/ticket/{ticketId}` | Cancel ticket |
 
-### Security
-- JWT-based authentication with refresh tokens
-- BCrypt password hashing
-- Role-based access control (USER/ADMIN)
-- Admin-only access for event/show/venue management
+### Venues (Admin endpoints require authorization)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/theater/addNew` | Create venue (Admin) |
+| POST | `/theater/addTheaterSeat` | Add seats (Admin) |
+| GET | `/theater` | Get all venues |
+| GET | `/theater/{id}` | Get venue by ID |
+| GET | `/theater/city/{city}` | Venues in city |
+
+---
+
+## Conflict-Free Seat Allocation
+
+### How It Works
+
+1. **Pessimistic Database Locking**
+   ```java
+   @Lock(LockModeType.PESSIMISTIC_WRITE)
+   List<ShowSeat> findAndLockByIds(List<Integer> seatIds);
+   ```
+   Executes `SELECT ... FOR UPDATE` to lock rows at database level.
+
+2. **Transaction Isolation**
+   ```java
+   @Transactional(isolation = Isolation.SERIALIZABLE)
+   ```
+   Uses highest isolation level to prevent concurrent modifications.
+
+3. **Seat States**
+   - `AVAILABLE` - Can be locked
+   - `LOCKED` - Held for 10 minutes
+   - `BOOKED` - Permanently reserved
+
+4. **Automatic Cleanup**
+   - Scheduled job runs every 2 minutes
+   - Releases locks older than 10 minutes
+
+### Booking Flow Sequence
+
+![Booking Sequence Diagram](Sequence_diagram.png)
+
+---
+
+## Database Schema
+
+![Entity Relationship Diagram](ERD.png)
+
+---
+
+## Redis Caching
+
+### Cached Data
+
+| Data | TTL | Eviction |
+|------|-----|----------|
+| All events | 2 hours | On event create/update/delete |
+| Event by ID | 2 hours | On event update/delete |
+| Events by type/city/genre/language | 1 hour | On event changes |
+| All shows | 30 min | On show create/update/delete |
+| Show by ID | 15 min | On show update, seat lock/book |
+| Shows by event/theater/date | 30 min | On show changes |
+
+---
+
+## Kafka Integration
+
+### Events Published
+
+**BookingConfirmedEvent:**
+- bookingId, userId, userEmail, userName
+- showId, eventName, theaterName
+- bookedSeats, totalPrice, bookingTime
+
+**BookingFailedEvent:**
+- userId, userEmail, showId
+- requestedSeats, failureReason, failureTime
+
+### Consumer
+- Listens to booking events
+- Simulates email/SMS notifications
+
+---
 
 ## Testing
 
-### Run Integration Tests
+### Run Tests
 ```bash
 mvn test
 ```
 
-Tests use Testcontainers for PostgreSQL, Redis, and Kafka.
+Uses Testcontainers for PostgreSQL, Redis, and Kafka.
 
 ### Manual Testing
-See `API_TEST_COMMANDS.md` for complete cURL commands.
-
-## Architecture
-
-```
-Client → API Layer (Controllers)
-           ↓
-       Service Layer (Business Logic)
-           ↓
-       Repository Layer (JPA)
-           ↓
-       PostgreSQL Database
-
-       Caching: Redis
-       Async Events: Kafka
-```
-
-## Event Types Supported
-
-All events feature **theater-style seating** in auditoriums/venues:
-
-- **MOVIE** - Cinema movies (with genre support)
-- **CONCERT** - Music concerts in seated venues
-- **THEATER** - Theater plays and performances (with genre support)
-- **COMEDY_SHOW** - Stand-up comedy shows
-- **OPERA** - Opera performances (with genre support)
-- **DANCE_SHOW** - Dance performances and recitals
+- Swagger UI: http://localhost:8081/swagger-ui.html
 
 ---
+
+## Docker Services
+
+| Service | Port | Access |
+|---------|------|--------|
+| Spring Boot | 8081 | http://localhost:8081 |
+| PostgreSQL | 5450 | - |
+| pgAdmin | 5051 | http://localhost:5051 |
+| Redis | 6379 | - |
+| RedisInsight | 5540 | http://localhost:5540 |
+| Kafka | 9092 | - |
+| Kafka UI | 8090 | http://localhost:8090 |
+| Zookeeper | 2181 | - |
+
+---
+
+## Security Features
+
+- BCrypt password hashing
+- JWT access tokens (30 min expiry)
+- JWT refresh tokens (7 day expiry)
+- Role-based access control (USER/ADMIN)
+- Input validation
+- Parameterized SQL queries
+
+
 
