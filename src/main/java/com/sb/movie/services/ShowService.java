@@ -3,8 +3,8 @@ package com.sb.movie.services;
 import com.sb.movie.entities.Show;
 import com.sb.movie.exceptions.ShowDoesNotExists;
 import com.sb.movie.request.ShowRequest;
-import com.sb.movie.request.ShowSeatRequest;
 import com.sb.movie.response.SeatAvailabilityResponse;
+import com.sb.movie.response.ShowDetailsResponse;
 
 import java.sql.Date;
 import java.util.List;
@@ -14,17 +14,11 @@ public interface ShowService {
 
     String addShow(ShowRequest showRequest);
 
-    String associateShowSeats(ShowSeatRequest showSeatRequest) throws ShowDoesNotExists;
-
     Show getShowById(Integer showId);
 
-    List<Show> getAllShows();
+    ShowDetailsResponse getShowDetails(Integer showId) throws ShowDoesNotExists;
 
-    List<Show> getShowsByEventId(Integer eventId);
-
-    List<Show> getShowsByTheaterId(Integer theaterId);
-
-    List<Show> getShowsByDate(Date date);
+    List<Show> searchShows(Integer eventId, Integer theaterId, Date date);
 
     Map<String, Map<String, List<Show>>> getShowsGroupedByDateAndVenue();
 

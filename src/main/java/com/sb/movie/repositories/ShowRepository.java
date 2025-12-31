@@ -10,15 +10,12 @@ import java.util.List;
 
 public interface ShowRepository extends JpaRepository<Show, Integer> {
 
-    List<Show> findByEventId(Integer eventId);
-
-    List<Show> findByTheaterId(Integer theaterId);
-
-    List<Show> findByDate(Date date);
-
-    @Query("SELECT s FROM Show s WHERE s.date = :date AND s.theater.id = :theaterId")
-    List<Show> findByDateAndTheaterId(@Param("date") Date date, @Param("theaterId") Integer theaterId);
-
-    @Query("SELECT s FROM Show s ORDER BY s.date, s.theater.name, s.time")
-    List<Show> findAllOrderedByDateAndVenue();
+    @Query("SELECT s FROM Show s WHERE " +
+           "(:eventId IS NULL OR s.event.id = :eventId) AND " +
+           "(:theaterId IS NULL OR s.theater.id = :theaterId) AND " +
+           "(CAST(:date AS date) IS NULL OR s.date = :date) " +
+           "ORDER BY s.date, s.theater.name, s.time")
+    List<Show> searchShows(@Param("eventId") Integer eventId,
+                           @Param("theaterId") Integer theaterId,
+                           @Param("date") Date date);
 }

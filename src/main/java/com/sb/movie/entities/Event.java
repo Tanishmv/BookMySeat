@@ -55,9 +55,8 @@ public class Event {
     @Column(name = "poster_url")
     private String posterUrl;   // Event poster/image URL
 
-    private String city;        // City where event is happening
-
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
     @JsonManagedReference
+    @Builder.Default
     private List<Show> shows = new ArrayList<>();
 }

@@ -24,10 +24,9 @@ public class Theater {
 
     private String name;
 
-    @Column(unique = true)
-    private String address;
-
-    private String city;
+    @ManyToOne
+    @JoinColumn(name = "venue_id", nullable = false)
+    private Venue venue;
 
     @OneToMany(mappedBy = "theater", cascade = CascadeType.ALL)
     @JsonIgnore

@@ -19,7 +19,6 @@ public class EventConvertor {
                 .performers(eventRequest.getPerformers())
                 .description(eventRequest.getDescription())
                 .posterUrl(eventRequest.getPosterUrl())
-                .city(eventRequest.getCity())
                 .build();
 
         return event;

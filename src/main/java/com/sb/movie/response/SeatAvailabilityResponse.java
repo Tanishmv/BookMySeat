@@ -18,6 +18,7 @@ public class SeatAvailabilityResponse {
     private Integer showId;
     private Date showDate;
     private Time showTime;
+    private Time endTime;
     private String eventName;
     private String theaterName;
     private String theaterAddress;

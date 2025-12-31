@@ -1,14 +1,11 @@
 package com.sb.movie;
 
 import com.sb.movie.controllers.AuthRequest;
-import com.sb.movie.entities.Event;
-import com.sb.movie.enums.EventType;
 import com.sb.movie.enums.Gender;
-import com.sb.movie.enums.Genre;
-import com.sb.movie.enums.Language;
-import com.sb.movie.request.EventRequest;
 import com.sb.movie.request.UserRequest;
+import com.sb.movie.request.VenueRequest;
 import com.sb.movie.response.AuthResponse;
+import com.sb.movie.response.VenueResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,13 +13,12 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Date;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Transactional
-class EventIntegrationTest extends BaseIntegrationTest {
+class VenueIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -55,26 +51,20 @@ class EventIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void shouldPerformCompleteEventCRUD() {
+    void shouldPerformCompleteVenueCRUD() {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(adminToken);
 
         // ========== CREATE (C) ==========
-        EventRequest createRequest = new EventRequest();
-        createRequest.setName("Avengers Endgame");
-        createRequest.setEventType(EventType.MOVIE);
-        createRequest.setDuration(181);
-        createRequest.setRating(8.4);
-        createRequest.setReleaseDate(Date.valueOf("2019-04-26"));
-        createRequest.setGenre(Genre.ACTION);
-        createRequest.setLanguage(Language.ENGLISH);
-        createRequest.setDirector("Russo Brothers");
-        createRequest.setPerformers("Robert Downey Jr., Chris Evans, Scarlett Johansson");
-        createRequest.setDescription("The epic conclusion to the Infinity Saga");
+        VenueRequest createRequest = new VenueRequest();
+        createRequest.setName("Phoenix Marketcity Mall");
+        createRequest.setAddress("142, Lal Bahadur Shastri Rd, Kurla West");
+        createRequest.setCity("Mumbai");
+        createRequest.setDescription("Premium shopping and entertainment destination");
 
-        HttpEntity<EventRequest> createReq = new HttpEntity<>(createRequest, headers);
+        HttpEntity<VenueRequest> createReq = new HttpEntity<>(createRequest, headers);
         ResponseEntity<String> createResponse = restTemplate.exchange(
-                "/api/events",
+                "/venue/addNew",
                 HttpMethod.POST,
                 createReq,
                 String.class
@@ -82,12 +72,12 @@ class EventIntegrationTest extends BaseIntegrationTest {
 
         // Verify CREATE
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(createResponse.getBody()).contains("added successfully");
+        assertThat(createResponse.getBody()).contains("saved successfully");
 
         // ========== READ - Get All (R) ==========
-        ResponseEntity<Event[]> getAllResponse = restTemplate.getForEntity(
-                "/api/events",
-                Event[].class
+        ResponseEntity<VenueResponse[]> getAllResponse = restTemplate.getForEntity(
+                "/venue",
+                VenueResponse[].class
         );
 
         // Verify READ ALL
@@ -95,41 +85,45 @@ class EventIntegrationTest extends BaseIntegrationTest {
         assertThat(getAllResponse.getBody()).isNotNull();
         assertThat(getAllResponse.getBody().length).isGreaterThan(0);
 
-        // Get the created event ID
-        Event createdEvent = getAllResponse.getBody()[getAllResponse.getBody().length - 1];
-        Integer eventId = createdEvent.getId();
-        assertThat(createdEvent.getName()).isEqualTo("Avengers Endgame");
+        // Get the created venue ID
+        VenueResponse createdVenue = getAllResponse.getBody()[getAllResponse.getBody().length - 1];
+        Integer venueId = createdVenue.getId();
+        assertThat(createdVenue.getName()).isEqualTo("Phoenix Marketcity Mall");
+        assertThat(createdVenue.getCity()).isEqualTo("Mumbai");
 
         // ========== READ - Get By ID (R) ==========
-        ResponseEntity<Event> getByIdResponse = restTemplate.getForEntity(
-                "/api/events/" + eventId,
-                Event.class
+        ResponseEntity<VenueResponse> getByIdResponse = restTemplate.getForEntity(
+                "/venue/" + venueId,
+                VenueResponse.class
         );
 
         // Verify READ BY ID
         assertThat(getByIdResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(getByIdResponse.getBody()).isNotNull();
-        assertThat(getByIdResponse.getBody().getName()).isEqualTo("Avengers Endgame");
-        assertThat(getByIdResponse.getBody().getEventType()).isEqualTo(EventType.MOVIE);
-        assertThat(getByIdResponse.getBody().getGenre()).isEqualTo(Genre.ACTION);
-        assertThat(getByIdResponse.getBody().getRating()).isEqualTo(8.4);
+        assertThat(getByIdResponse.getBody().getName()).isEqualTo("Phoenix Marketcity Mall");
+        assertThat(getByIdResponse.getBody().getAddress()).isEqualTo("142, Lal Bahadur Shastri Rd, Kurla West");
+
+        // ========== READ - Get By City (R) ==========
+        ResponseEntity<VenueResponse[]> getByCityResponse = restTemplate.getForEntity(
+                "/venue?city=Mumbai",
+                VenueResponse[].class
+        );
+
+        // Verify READ BY CITY
+        assertThat(getByCityResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(getByCityResponse.getBody()).isNotNull();
+        assertThat(getByCityResponse.getBody().length).isGreaterThan(0);
 
         // ========== UPDATE (U) ==========
-        EventRequest updateRequest = new EventRequest();
-        updateRequest.setName("Avengers Endgame - Remastered");
-        updateRequest.setEventType(EventType.MOVIE);
-        updateRequest.setDuration(181);
-        updateRequest.setRating(8.8); // Updated rating
-        updateRequest.setReleaseDate(Date.valueOf("2024-04-26")); // Re-release date
-        updateRequest.setGenre(Genre.ACTION);
-        updateRequest.setLanguage(Language.ENGLISH);
-        updateRequest.setDirector("Russo Brothers");
-        updateRequest.setPerformers("Robert Downey Jr., Chris Evans, Scarlett Johansson");
-        updateRequest.setDescription("Remastered version with enhanced visuals");
+        VenueRequest updateRequest = new VenueRequest();
+        updateRequest.setName("Phoenix Marketcity - Updated");
+        updateRequest.setAddress("142, Lal Bahadur Shastri Rd, Kurla West, Mumbai");
+        updateRequest.setCity("Mumbai");
+        updateRequest.setDescription("Updated description - Premium mall with world-class facilities");
 
-        HttpEntity<EventRequest> updateReq = new HttpEntity<>(updateRequest, headers);
+        HttpEntity<VenueRequest> updateReq = new HttpEntity<>(updateRequest, headers);
         ResponseEntity<String> updateResponse = restTemplate.exchange(
-                "/api/events/" + eventId,
+                "/venue/" + venueId,
                 HttpMethod.PUT,
                 updateReq,
                 String.class
@@ -140,17 +134,17 @@ class EventIntegrationTest extends BaseIntegrationTest {
         assertThat(updateResponse.getBody()).contains("updated successfully");
 
         // Verify update took effect
-        ResponseEntity<Event> getUpdatedResponse = restTemplate.getForEntity(
-                "/api/events/" + eventId,
-                Event.class
+        ResponseEntity<VenueResponse> getUpdatedResponse = restTemplate.getForEntity(
+                "/venue/" + venueId,
+                VenueResponse.class
         );
-        assertThat(getUpdatedResponse.getBody().getName()).isEqualTo("Avengers Endgame - Remastered");
-        assertThat(getUpdatedResponse.getBody().getRating()).isEqualTo(8.8);
+        assertThat(getUpdatedResponse.getBody().getName()).isEqualTo("Phoenix Marketcity - Updated");
+        assertThat(getUpdatedResponse.getBody().getDescription()).contains("world-class facilities");
 
         // ========== DELETE (D) ==========
         HttpEntity<Void> deleteReq = new HttpEntity<>(headers);
         ResponseEntity<String> deleteResponse = restTemplate.exchange(
-                "/api/events/" + eventId,
+                "/venue/" + venueId,
                 HttpMethod.DELETE,
                 deleteReq,
                 String.class
@@ -160,9 +154,9 @@ class EventIntegrationTest extends BaseIntegrationTest {
         assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(deleteResponse.getBody()).contains("deleted successfully");
 
-        // Verify event is actually deleted
+        // Verify venue is actually deleted
         ResponseEntity<String> getDeletedResponse = restTemplate.getForEntity(
-                "/api/events/" + eventId,
+                "/venue/" + venueId,
                 String.class
         );
         assertThat(getDeletedResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);

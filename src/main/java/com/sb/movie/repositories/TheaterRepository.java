@@ -2,10 +2,23 @@ package com.sb.movie.repositories;
 
 import com.sb.movie.entities.Theater;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface TheaterRepository extends JpaRepository<Theater, Integer> {
-    Theater findByAddress(String address);
-    List<Theater> findByCity(String city);
+
+    List<Theater> findByVenueId(Integer venueId);
+
+    @Query("SELECT t FROM Theater t WHERE LOWER(t.venue.city) = LOWER(:city)")
+    List<Theater> findByCity(@Param("city") String city);
+
+    @Query("SELECT t FROM Theater t WHERE " +
+           "(:name IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
+           "(:city IS NULL OR LOWER(t.venue.city) = LOWER(:city)) AND " +
+           "(:venueId IS NULL OR t.venue.id = :venueId)")
+    List<Theater> searchTheaters(@Param("name") String name,
+                                 @Param("city") String city,
+                                 @Param("venueId") Integer venueId);
 }

@@ -17,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -52,54 +53,20 @@ public class EventController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all events", description = "Retrieve all events")
-    public ResponseEntity<List<Event>> getAllEvents() {
-        List<Event> events = eventService.getAllEvents();
-        return new ResponseEntity<>(events, HttpStatus.OK);
-    }
-
-    @GetMapping("/type/{eventType}")
-    @Operation(summary = "Get events by type", description = "Retrieve events by type (MOVIE, CONCERT, SPORTS, etc.)")
-    public ResponseEntity<List<Event>> getEventsByType(@PathVariable EventType eventType) {
-        List<Event> events = eventService.getEventsByType(eventType);
-        return new ResponseEntity<>(events, HttpStatus.OK);
-    }
-
-    @GetMapping("/city/{city}")
-    @Operation(summary = "Get events by city", description = "Retrieve events happening in a specific city")
-    public ResponseEntity<List<Event>> getEventsByCity(@PathVariable String city) {
-        List<Event> events = eventService.getEventsByCity(city);
-        return new ResponseEntity<>(events, HttpStatus.OK);
-    }
-
-    @GetMapping("/search")
-    @Operation(summary = "Search events", description = "Search events by city and type")
+    @Operation(summary = "Search events",
+               description = "Search events with optional filters: name, city, type, genre, language, date (format: yyyy-MM-dd). " +
+                           "All parameters are optional. Leave blank to get all events. " +
+                           "Name search is partial match (case-insensitive).")
     public ResponseEntity<List<Event>> searchEvents(
-            @RequestParam String city,
-            @RequestParam EventType eventType) {
-        List<Event> events = eventService.getEventsByCityAndType(city, eventType);
-        return new ResponseEntity<>(events, HttpStatus.OK);
-    }
-
-    @GetMapping("/genre/{genre}")
-    @Operation(summary = "Get events by genre", description = "Retrieve events by genre (DRAMA, ACTION, COMEDY, etc.)")
-    public ResponseEntity<List<Event>> getEventsByGenre(@PathVariable Genre genre) {
-        List<Event> events = eventService.getEventsByGenre(genre);
-        return new ResponseEntity<>(events, HttpStatus.OK);
-    }
-
-    @GetMapping("/language/{language}")
-    @Operation(summary = "Get events by language", description = "Retrieve events by language (HINDI, ENGLISH, TAMIL, etc.)")
-    public ResponseEntity<List<Event>> getEventsByLanguage(@PathVariable Language language) {
-        List<Event> events = eventService.getEventsByLanguage(language);
-        return new ResponseEntity<>(events, HttpStatus.OK);
-    }
-
-    @GetMapping("/date/{date}")
-    @Operation(summary = "Get events by date", description = "Retrieve events that have shows on a specific date (format: yyyy-MM-dd)")
-    public ResponseEntity<List<Event>> getEventsByDate(
-            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
-        List<Event> events = eventService.getEventsByDate(date);
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) EventType type,
+            @RequestParam(required = false) Genre genre,
+            @RequestParam(required = false) Language language,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        // Convert LocalDate to java.sql.Date for service layer
+        Date sqlDate = date != null ? Date.valueOf(date) : null;
+        List<Event> events = eventService.searchEvents(name, city, type, genre, language, sqlDate);
         return new ResponseEntity<>(events, HttpStatus.OK);
     }
 

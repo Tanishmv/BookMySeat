@@ -40,9 +40,39 @@ public class Show {
 
     @OneToMany(mappedBy = "show", cascade = CascadeType.ALL)
     @JsonIgnore
+    @Builder.Default
     private List<ShowSeat> showSeatList = new ArrayList<>();
 
     @OneToMany(mappedBy = "show", cascade = CascadeType.ALL)
     @JsonIgnore
+    @Builder.Default
     private List<Ticket> ticketList = new ArrayList<>();
+
+    // Helper methods for better API responses
+
+    @Transient
+    public Time getStartTime() {
+        return time;
+    }
+
+    @Transient
+    public Time getEndTime() {
+        if (time == null || event == null || event.getDuration() == null) {
+            return null;
+        }
+        // Calculate end time = start time + event duration (in minutes)
+        long startMillis = time.getTime();
+        long durationMillis = event.getDuration() * 60 * 1000L;
+        return new Time(startMillis + durationMillis);
+    }
+
+    @Transient
+    public Date getShowDate() {
+        return date;
+    }
+
+    @Transient
+    public Time getShowTime() {
+        return time;
+    }
 }

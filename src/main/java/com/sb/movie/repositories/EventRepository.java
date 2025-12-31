@@ -14,19 +14,21 @@ import java.util.List;
 public interface EventRepository extends JpaRepository<Event, Integer> {
     Event findByName(String name);
 
-    List<Event> findByEventType(EventType eventType);
-
-    List<Event> findByCity(String city);
-
-    @Query("SELECT e FROM Event e WHERE e.city = :city AND e.eventType = :eventType")
-    List<Event> findByCityAndEventType(@Param("city") String city, @Param("eventType") EventType eventType);
-
-    List<Event> findByGenre(Genre genre);
-
-    List<Event> findByLanguage(Language language);
-
-    List<Event> findByReleaseDate(Date releaseDate);
-
-    @Query("SELECT DISTINCT e FROM Event e JOIN e.shows s WHERE s.date = :date")
-    List<Event> findEventsWithShowsOnDate(@Param("date") Date date);
+    @Query(value = "SELECT DISTINCT e.* FROM events e " +
+           "LEFT JOIN shows s ON e.id = s.event_id " +
+           "LEFT JOIN theaters t ON s.theater_id = t.id " +
+           "LEFT JOIN venues v ON t.venue_id = v.id WHERE " +
+           "(:name IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', CAST(:name AS VARCHAR), '%'))) AND " +
+           "(:city IS NULL OR LOWER(v.city) = LOWER(CAST(:city AS VARCHAR))) AND " +
+           "(:eventType IS NULL OR e.event_type = CAST(:eventType AS VARCHAR)) AND " +
+           "(:genre IS NULL OR e.genre = CAST(:genre AS VARCHAR)) AND " +
+           "(:language IS NULL OR e.language = CAST(:language AS VARCHAR)) AND " +
+           "(CAST(:date AS DATE) IS NULL OR s.date = :date)",
+           nativeQuery = true)
+    List<Event> searchEvents(@Param("name") String name,
+                             @Param("city") String city,
+                             @Param("eventType") String eventType,
+                             @Param("genre") String genre,
+                             @Param("language") String language,
+                             @Param("date") Date date);
 }

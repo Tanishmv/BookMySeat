@@ -12,4 +12,6 @@ public class ShowRequest {
     private Date showDate;
     private Integer theaterId;
     private Integer eventId;
+    private Integer priceOfPremiumSeat;
+    private Integer priceOfClassicSeat;
 }

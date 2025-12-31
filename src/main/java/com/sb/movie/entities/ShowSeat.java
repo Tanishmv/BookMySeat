@@ -36,8 +36,6 @@ public class ShowSeat {
 
     private Integer lockedByUserId;
 
-    private Boolean isFoodContains = Boolean.FALSE;
-
     @Version
     private Long version;  // Optimistic locking
 

@@ -11,9 +11,9 @@ import com.sb.movie.repositories.EventRepository;
 import com.sb.movie.repositories.ShowRepository;
 import com.sb.movie.repositories.TheaterRepository;
 import com.sb.movie.request.ShowRequest;
-import com.sb.movie.request.ShowSeatRequest;
 import com.sb.movie.response.SeatAvailabilityResponse;
 import com.sb.movie.response.SeatInfo;
+import com.sb.movie.response.ShowDetailsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -23,6 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,7 +41,9 @@ public class ShowServiceImpl implements ShowService{
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "shows", allEntries = true),
+            @CacheEvict(value = "showSearch", allEntries = true),
+            @CacheEvict(value = "showsGrouped", allEntries = true),
+            @CacheEvict(value = "showDetails", allEntries = true),
             @CacheEvict(value = "eventById", key = "#showRequest.eventId")
     })
     public String addShow(ShowRequest showRequest) {
@@ -66,33 +71,8 @@ public class ShowServiceImpl implements ShowService{
         show.setTheater(theater);
         show = showRepository.save(show);
 
-        event.getShows().add(show);
-        theater.getShowList().add(show);
-
-        eventRepository.save(event);
-        theaterRepository.save(theater);
-
-        log.info("Show added successfully with ID: {} and cache evicted", show.getShowId());
-        return "Show has been added Successfully";
-    }
-
-    @Override
-    @Transactional
-    @CacheEvict(value = "showById", key = "#showSeatRequest.showId")
-    public String associateShowSeats(ShowSeatRequest showSeatRequest) throws ShowDoesNotExists {
-        log.info("Associating seats for show ID: {}", showSeatRequest.getShowId());
-
-        Optional<Show> showOpt = showRepository.findById(showSeatRequest.getShowId());
-
-        if (showOpt.isEmpty()) {
-            throw new ShowDoesNotExists();
-        }
-
-        Show show = showOpt.get();
-        Theater theater = show.getTheater();
-
+        // Create show seats with prices from theater seats
         List<TheaterSeat> theaterSeatList = theater.getTheaterSeatList();
-
         List<ShowSeat> showSeatList = show.getShowSeatList();
 
         for (TheaterSeat theaterSeat : theaterSeatList) {
@@ -101,23 +81,28 @@ public class ShowServiceImpl implements ShowService{
             showSeat.setSeatType(theaterSeat.getSeatType());
 
             if (showSeat.getSeatType().equals(SeatType.CLASSIC)) {
-                showSeat.setPrice((showSeatRequest.getPriceOfClassicSeat()));
+                showSeat.setPrice(showRequest.getPriceOfClassicSeat());
             } else {
-                showSeat.setPrice(showSeatRequest.getPriceOfPremiumSeat());
+                showSeat.setPrice(showRequest.getPriceOfPremiumSeat());
             }
 
             showSeat.setShow(show);
             showSeat.setStatus(com.sb.movie.enums.SeatStatus.AVAILABLE);
-            showSeat.setIsFoodContains(Boolean.FALSE);
 
             showSeatList.add(showSeat);
         }
 
-        showRepository.save(show);
+        show = showRepository.save(show);
 
-        log.info("Successfully associated {} seats for show ID: {} and cache evicted",
-                showSeatList.size(), showSeatRequest.getShowId());
-        return "Show seats have been associated successfully";
+        event.getShows().add(show);
+        theater.getShowList().add(show);
+
+        eventRepository.save(event);
+        theaterRepository.save(theater);
+
+        log.info("Show added successfully with ID: {} and {} seats created",
+                show.getShowId(), showSeatList.size());
+        return "Show has been added successfully with " + showSeatList.size() + " seats";
     }
 
     @Override
@@ -129,45 +114,108 @@ public class ShowServiceImpl implements ShowService{
     }
 
     @Override
-    @Cacheable(value = "shows", unless = "#result == null || #result.isEmpty()")
-    public List<Show> getAllShows() {
-        log.debug("Fetching all shows from database");
-        return showRepository.findAllOrderedByDateAndVenue();
+    @Cacheable(value = "showDetails", key = "#showId", unless = "#result == null")
+    public ShowDetailsResponse getShowDetails(Integer showId) throws ShowDoesNotExists {
+        log.debug("Fetching show details for show ID: {}", showId);
+
+        Show show = showRepository.findById(showId)
+                .orElseThrow(() -> new ShowDoesNotExists());
+
+        Event event = show.getEvent();
+        Theater theater = show.getTheater();
+        Venue venue = theater.getVenue();
+        List<ShowSeat> showSeats = show.getShowSeatList();
+
+        // Calculate seat statistics by category
+        Map<String, ShowDetailsResponse.SeatCategorySummary> seatSummary = new LinkedHashMap<>();
+
+        Map<SeatType, List<ShowSeat>> seatsByType = showSeats.stream()
+                .collect(Collectors.groupingBy(ShowSeat::getSeatType));
+
+        for (Map.Entry<SeatType, List<ShowSeat>> entry : seatsByType.entrySet()) {
+            SeatType type = entry.getKey();
+            List<ShowSeat> seats = entry.getValue();
+
+            long available = seats.stream()
+                    .filter(seat -> seat.getStatus() == SeatStatus.AVAILABLE)
+                    .count();
+
+            Integer price = seats.isEmpty() ? 0 : seats.get(0).getPrice();
+
+            seatSummary.put(type.name(), ShowDetailsResponse.SeatCategorySummary.builder()
+                    .seatType(type.name())
+                    .total(seats.size())
+                    .available((int) available)
+                    .price(price)
+                    .build());
+        }
+
+        // Calculate overall statistics
+        long totalSeats = showSeats.size();
+        long availableSeats = showSeats.stream()
+                .filter(seat -> seat.getStatus() == SeatStatus.AVAILABLE)
+                .count();
+        long lockedSeats = showSeats.stream()
+                .filter(seat -> seat.getStatus() == SeatStatus.LOCKED)
+                .count();
+        long bookedSeats = showSeats.stream()
+                .filter(seat -> seat.getStatus() == SeatStatus.BOOKED)
+                .count();
+
+        return ShowDetailsResponse.builder()
+                .showId(show.getShowId())
+                .showDate(show.getShowDate())
+                .startTime(show.getStartTime())
+                .endTime(show.getEndTime())
+                .eventId(event.getId())
+                .eventName(event.getName())
+                .eventType(event.getEventType())
+                .duration(event.getDuration())
+                .rating(event.getRating())
+                .genre(event.getGenre())
+                .language(event.getLanguage())
+                .description(event.getDescription())
+                .posterUrl(event.getPosterUrl())
+                .venue(ShowDetailsResponse.VenueInfo.builder()
+                        .id(venue.getId())
+                        .name(venue.getName())
+                        .address(venue.getAddress())
+                        .city(venue.getCity())
+                        .build())
+                .theater(ShowDetailsResponse.TheaterInfo.builder()
+                        .id(theater.getId())
+                        .name(theater.getName())
+                        .build())
+                .seatSummary(seatSummary)
+                .totalSeats((int) totalSeats)
+                .availableSeats((int) availableSeats)
+                .lockedSeats((int) lockedSeats)
+                .bookedSeats((int) bookedSeats)
+                .build();
     }
 
     @Override
-    @Cacheable(value = "showsByEvent", key = "#eventId", unless = "#result == null || #result.isEmpty()")
-    public List<Show> getShowsByEventId(Integer eventId) {
-        log.debug("Fetching shows by event ID from database: {}", eventId);
-        return showRepository.findByEventId(eventId);
-    }
-
-    @Override
-    @Cacheable(value = "showsByTheater", key = "#theaterId", unless = "#result == null || #result.isEmpty()")
-    public List<Show> getShowsByTheaterId(Integer theaterId) {
-        log.debug("Fetching shows by theater ID from database: {}", theaterId);
-        return showRepository.findByTheaterId(theaterId);
-    }
-
-    @Override
-    @Cacheable(value = "showsByDate", key = "#date", unless = "#result == null || #result.isEmpty()")
-    public List<Show> getShowsByDate(Date date) {
-        log.debug("Fetching shows by date from database: {}", date);
-        return showRepository.findByDate(date);
+    @Cacheable(value = "showSearch",
+               key = "#eventId + '_' + #theaterId + '_' + #date",
+               unless = "#result == null || #result.isEmpty()")
+    public List<Show> searchShows(Integer eventId, Integer theaterId, Date date) {
+        log.debug("Searching shows with filters - eventId: {}, theaterId: {}, date: {}",
+                  eventId, theaterId, date);
+        return showRepository.searchShows(eventId, theaterId, date);
     }
 
     @Override
     @Cacheable(value = "showsGrouped", unless = "#result == null || #result.isEmpty()")
     public Map<String, Map<String, List<Show>>> getShowsGroupedByDateAndVenue() {
         log.debug("Fetching shows grouped by date and venue from database");
-        List<Show> shows = showRepository.findAllOrderedByDateAndVenue();
+        List<Show> shows = showRepository.searchShows(null, null, null);
 
         return shows.stream()
                 .collect(Collectors.groupingBy(
-                        show -> show.getDate().toString(),
+                        show -> show.getShowDate().toString(),
                         LinkedHashMap::new,
                         Collectors.groupingBy(
-                                show -> show.getTheater().getName(),
+                                show -> show.getTheater().getVenue().getName() + " - " + show.getTheater().getName(),
                                 LinkedHashMap::new,
                                 Collectors.toList()
                         )
@@ -177,11 +225,9 @@ public class ShowServiceImpl implements ShowService{
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "shows", allEntries = true),
             @CacheEvict(value = "showById", key = "#showId"),
-            @CacheEvict(value = "showsByEvent", allEntries = true),
-            @CacheEvict(value = "showsByTheater", allEntries = true),
-            @CacheEvict(value = "showsByDate", allEntries = true),
+            @CacheEvict(value = "showDetails", key = "#showId"),
+            @CacheEvict(value = "showSearch", allEntries = true),
             @CacheEvict(value = "showsGrouped", allEntries = true)
     })
     public String updateShow(Integer showId, ShowRequest showRequest) throws ShowDoesNotExists {
@@ -189,6 +235,21 @@ public class ShowServiceImpl implements ShowService{
 
         Show show = showRepository.findById(showId)
                 .orElseThrow(() -> new ShowDoesNotExists());
+
+        // Validate that new date/time is not in the past
+        if (showRequest.getShowDate() != null || showRequest.getShowStartTime() != null) {
+            Date newDate = showRequest.getShowDate() != null ? showRequest.getShowDate() : show.getDate();
+            java.sql.Time newTime = showRequest.getShowStartTime() != null ? showRequest.getShowStartTime() : show.getTime();
+
+            LocalDate showDate = newDate.toLocalDate();
+            LocalTime showTime = newTime.toLocalTime();
+            LocalDateTime newShowDateTime = LocalDateTime.of(showDate, showTime);
+            LocalDateTime now = LocalDateTime.now();
+
+            if (newShowDateTime.isBefore(now)) {
+                throw new IllegalArgumentException("Cannot update show to a past date/time. Show date/time must be in the future.");
+            }
+        }
 
         if (showRequest.getShowDate() != null) {
             show.setDate(showRequest.getShowDate());
@@ -205,11 +266,9 @@ public class ShowServiceImpl implements ShowService{
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "shows", allEntries = true),
             @CacheEvict(value = "showById", key = "#showId"),
-            @CacheEvict(value = "showsByEvent", allEntries = true),
-            @CacheEvict(value = "showsByTheater", allEntries = true),
-            @CacheEvict(value = "showsByDate", allEntries = true),
+            @CacheEvict(value = "showDetails", key = "#showId"),
+            @CacheEvict(value = "showSearch", allEntries = true),
             @CacheEvict(value = "showsGrouped", allEntries = true)
     })
     public String deleteShow(Integer showId) throws ShowDoesNotExists {
@@ -263,10 +322,11 @@ public class ShowServiceImpl implements ShowService{
                 .showId(show.getShowId())
                 .showDate(show.getDate())
                 .showTime(show.getTime())
+                .endTime(show.getEndTime())
                 .eventName(show.getEvent().getName())
                 .theaterName(show.getTheater().getName())
-                .theaterAddress(show.getTheater().getAddress())
-                .city(show.getTheater().getCity())
+                .theaterAddress(show.getTheater().getVenue().getAddress())
+                .city(show.getTheater().getVenue().getCity())
                 .totalSeats((int) totalSeats)
                 .availableSeats((int) availableSeats)
                 .lockedSeats((int) lockedSeats)

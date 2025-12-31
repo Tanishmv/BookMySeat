@@ -9,7 +9,7 @@ public class TicketConvertor {
     public static TicketResponse returnTicket(Show show, Ticket ticket) {
         TicketResponse ticketResponseDto = TicketResponse.builder()
                 .bookedSeats(ticket.getBookedSeats())
-                .address(show.getTheater().getAddress())
+                .address(show.getTheater().getVenue().getAddress())
                 .theaterName(show.getTheater().getName())
                 .movieName(show.getEvent().getName())
                 .date(show.getDate())

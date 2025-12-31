@@ -29,14 +29,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "events", allEntries = true),
-            @CacheEvict(value = "eventsByType", allEntries = true),
-            @CacheEvict(value = "eventsByCity", allEntries = true),
-            @CacheEvict(value = "eventsByGenre", allEntries = true),
-            @CacheEvict(value = "eventsByLanguage", allEntries = true),
-            @CacheEvict(value = "eventsByDate", allEntries = true)
-    })
+    @CacheEvict(value = "eventSearch", allEntries = true)
     public String addEvent(EventRequest eventRequest) {
         log.info("Adding new event: {}", eventRequest.getName());
 
@@ -58,6 +51,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @Cacheable(value = "eventById", key = "#eventId", unless = "#result == null")
     public Event getEventById(Integer eventId) {
         log.debug("Fetching event by ID from database: {}", eventId);
@@ -66,64 +60,27 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    @Cacheable(value = "events", unless = "#result == null || #result.isEmpty()")
-    public List<Event> getAllEvents() {
-        log.debug("Fetching all events from database");
-        return eventRepository.findAll();
-    }
+    @Transactional(readOnly = true)
+    @Cacheable(value = "eventSearch",
+               key = "#name + '_' + #city + '_' + #eventType + '_' + #genre + '_' + #language + '_' + #date",
+               unless = "#result == null || #result.isEmpty()")
+    public List<Event> searchEvents(String name, String city, EventType eventType, Genre genre, Language language, Date date) {
+        log.debug("Searching events with filters - name: {}, city: {}, type: {}, genre: {}, language: {}, date: {}",
+                  name, city, eventType, genre, language, date);
 
-    @Override
-    @Cacheable(value = "eventsByType", key = "#eventType", unless = "#result == null || #result.isEmpty()")
-    public List<Event> getEventsByType(EventType eventType) {
-        log.debug("Fetching events by type from database: {}", eventType);
-        return eventRepository.findByEventType(eventType);
-    }
+        // Convert enums to strings for native query
+        String eventTypeStr = eventType != null ? eventType.name() : null;
+        String genreStr = genre != null ? genre.name() : null;
+        String languageStr = language != null ? language.name() : null;
 
-    @Override
-    @Cacheable(value = "eventsByCity", key = "#city", unless = "#result == null || #result.isEmpty()")
-    public List<Event> getEventsByCity(String city) {
-        log.debug("Fetching events by city from database: {}", city);
-        return eventRepository.findByCity(city);
-    }
-
-    @Override
-    @Cacheable(value = "eventsByCity", key = "#city + '_' + #eventType", unless = "#result == null || #result.isEmpty()")
-    public List<Event> getEventsByCityAndType(String city, EventType eventType) {
-        log.debug("Fetching events by city and type from database: {} - {}", city, eventType);
-        return eventRepository.findByCityAndEventType(city, eventType);
-    }
-
-    @Override
-    @Cacheable(value = "eventsByGenre", key = "#genre", unless = "#result == null || #result.isEmpty()")
-    public List<Event> getEventsByGenre(Genre genre) {
-        log.debug("Fetching events by genre from database: {}", genre);
-        return eventRepository.findByGenre(genre);
-    }
-
-    @Override
-    @Cacheable(value = "eventsByLanguage", key = "#language", unless = "#result == null || #result.isEmpty()")
-    public List<Event> getEventsByLanguage(Language language) {
-        log.debug("Fetching events by language from database: {}", language);
-        return eventRepository.findByLanguage(language);
-    }
-
-    @Override
-    @Cacheable(value = "eventsByDate", key = "#date", unless = "#result == null || #result.isEmpty()")
-    public List<Event> getEventsByDate(Date date) {
-        log.debug("Fetching events with shows on date from database: {}", date);
-        return eventRepository.findEventsWithShowsOnDate(date);
+        return eventRepository.searchEvents(name, city, eventTypeStr, genreStr, languageStr, date);
     }
 
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "events", allEntries = true),
             @CacheEvict(value = "eventById", key = "#eventId"),
-            @CacheEvict(value = "eventsByType", allEntries = true),
-            @CacheEvict(value = "eventsByCity", allEntries = true),
-            @CacheEvict(value = "eventsByGenre", allEntries = true),
-            @CacheEvict(value = "eventsByLanguage", allEntries = true),
-            @CacheEvict(value = "eventsByDate", allEntries = true)
+            @CacheEvict(value = "eventSearch", allEntries = true)
     })
     public String updateEvent(Integer eventId, EventRequest eventRequest) {
         log.info("Updating event with ID: {}", eventId);
@@ -145,7 +102,6 @@ public class EventServiceImpl implements EventService {
         existingEvent.setPerformers(eventRequest.getPerformers());
         existingEvent.setDescription(eventRequest.getDescription());
         existingEvent.setPosterUrl(eventRequest.getPosterUrl());
-        existingEvent.setCity(eventRequest.getCity());
 
         eventRepository.save(existingEvent);
 
@@ -156,13 +112,8 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "events", allEntries = true),
             @CacheEvict(value = "eventById", key = "#eventId"),
-            @CacheEvict(value = "eventsByType", allEntries = true),
-            @CacheEvict(value = "eventsByCity", allEntries = true),
-            @CacheEvict(value = "eventsByGenre", allEntries = true),
-            @CacheEvict(value = "eventsByLanguage", allEntries = true),
-            @CacheEvict(value = "eventsByDate", allEntries = true)
+            @CacheEvict(value = "eventSearch", allEntries = true)
     })
     public String deleteEvent(Integer eventId) {
         log.info("Deleting event with ID: {}", eventId);

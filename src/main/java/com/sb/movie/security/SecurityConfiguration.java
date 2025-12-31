@@ -36,7 +36,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(req ->
                         req.requestMatchers("/user/addNew", "/api/auth/**").permitAll()
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                                .requestMatchers("/actuator/health").permitAll()  // Allow health check endpoint
+                                .requestMatchers("/actuator/**", "/error").permitAll()  // Allow actuator endpoints and error page
                                 .requestMatchers("/api/events/**", "/api/shows/**").permitAll()  // Allow browsing events and shows
                                 .requestMatchers("/theater", "/theater/*", "/theater/city/*").permitAll()  // Allow browsing theaters (GET)
                                 .requestMatchers("/theater/**").hasAnyAuthority("ROLE_ADMIN")  // Theater management (POST/PUT) - admin only

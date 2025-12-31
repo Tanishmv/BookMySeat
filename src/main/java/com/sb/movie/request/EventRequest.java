@@ -23,5 +23,4 @@ public class EventRequest {
     private String performers;  // For movies, theater, opera
     private String description;
     private String posterUrl;
-    private String city;
 }

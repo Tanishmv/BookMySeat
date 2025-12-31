@@ -4,7 +4,8 @@ import com.sb.movie.entities.Theater;
 import com.sb.movie.exceptions.TheaterIsExist;
 import com.sb.movie.exceptions.TheaterIsNotExist;
 import com.sb.movie.request.TheaterRequest;
-import com.sb.movie.request.TheaterSeatRequest;
+import com.sb.movie.request.TheaterUpdateRequest;
+import com.sb.movie.response.TheaterResponse;
 
 import java.util.List;
 
@@ -12,11 +13,13 @@ public interface TheaterService {
 
     String addTheater(TheaterRequest theaterRequest) throws TheaterIsExist;
 
-    String addTheaterSeat(TheaterSeatRequest entryDto) throws TheaterIsNotExist;
+    List<TheaterResponse> getAllTheaters();
 
-    List<Theater> getAllTheaters();
+    TheaterResponse getTheaterById(Integer id) throws TheaterIsNotExist;
 
-    Theater getTheaterById(Integer id) throws TheaterIsNotExist;
+    List<TheaterResponse> getTheatersByCity(String city);
 
-    List<Theater> getTheatersByCity(String city);
+    String updateTheater(Integer id, TheaterUpdateRequest theaterUpdateRequest) throws TheaterIsNotExist;
+
+    String deleteTheater(Integer id) throws TheaterIsNotExist;
 }

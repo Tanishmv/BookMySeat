@@ -3,6 +3,7 @@ package com.sb.movie;
 import com.sb.movie.controllers.AuthRequest;
 import com.sb.movie.entities.Show;
 import com.sb.movie.entities.Theater;
+import com.sb.movie.entities.Venue;
 import com.sb.movie.enums.EventType;
 import com.sb.movie.enums.Gender;
 import com.sb.movie.enums.Language;
@@ -100,11 +101,29 @@ class TicketIntegrationTest extends BaseIntegrationTest {
         );
         Integer eventId = eventsResponse.getBody()[eventsResponse.getBody().length - 1].getId();
 
-        // 4. Create Theater
+        // 4. Create Venue
+        VenueRequest venueRequest = new VenueRequest();
+        venueRequest.setName("PVR Cinemas Bangalore " + UUID.randomUUID());
+        venueRequest.setAddress("MG Road, Bangalore");
+        venueRequest.setCity("Bangalore");
+        venueRequest.setDescription("Premium multiplex cinema");
+
+        restTemplate.postForEntity("/venue/addNew", venueRequest, String.class);
+
+        // Get the created venue ID
+        ResponseEntity<com.sb.movie.response.VenueResponse[]> venuesResponse = restTemplate.getForEntity(
+                "/venue",
+                com.sb.movie.response.VenueResponse[].class
+        );
+        Integer venueId = venuesResponse.getBody()[venuesResponse.getBody().length - 1].getId();
+
+        // 5. Create Theater with seats in one step
         TheaterRequest theaterRequest = new TheaterRequest();
-        theaterRequest.setName("PVR Cinemas " + UUID.randomUUID());
-        theaterRequest.setAddress("MG Road, Bangalore");
-        theaterRequest.setCity("Bangalore");
+        theaterRequest.setName("Screen 1");
+        theaterRequest.setVenueId(venueId);
+        theaterRequest.setNoOfSeatInRow(10);
+        theaterRequest.setNoOfClassicSeat(30);
+        theaterRequest.setNoOfPremiumSeat(20);
 
         restTemplate.postForEntity("/theater/addNew", theaterRequest, String.class);
 
@@ -114,15 +133,6 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 Theater[].class
         );
         Integer theaterId = theatersResponse.getBody()[theatersResponse.getBody().length - 1].getId();
-
-        // 5. Add seats to theater
-        TheaterSeatRequest seatRequest = new TheaterSeatRequest();
-        seatRequest.setTheaterId(theaterId);
-        seatRequest.setNoOfSeatInRow(10);
-        seatRequest.setNoOfPremiumSeat(20);
-        seatRequest.setNoOfClassicSeat(30);
-
-        restTemplate.postForEntity("/theater/addTheaterSeat", seatRequest, String.class);
 
         // 6. Create Show
         ShowRequest showRequest = new ShowRequest();

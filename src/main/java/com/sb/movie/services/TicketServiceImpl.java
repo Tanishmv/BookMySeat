@@ -189,39 +189,56 @@ public class TicketServiceImpl implements TicketService {
                 throw new SeatsNotAvailable("Some seats not found");
             }
 
-            // Check if seats are already locked by this user
-            boolean alreadyLockedByUser = seats.stream()
+            // VALIDATION 1: All seats must be locked by this user
+            // Real-world flow: lock seats first, then book
+            boolean allLockedByUser = seats.stream()
                     .allMatch(seat -> seat.getStatus() == SeatStatus.LOCKED &&
                              seat.getLockedByUserId() != null &&
                              seat.getLockedByUserId().equals(user.getId()));
 
-            List<ShowSeat> seatsToBook;
+            if (!allLockedByUser) {
+                // Check what's wrong with the seats
+                List<String> unavailableSeats = seats.stream()
+                        .filter(seat -> seat.getStatus() != SeatStatus.LOCKED ||
+                                       seat.getLockedByUserId() == null ||
+                                       !seat.getLockedByUserId().equals(user.getId()))
+                        .map(seat -> {
+                            if (seat.getStatus() == SeatStatus.BOOKED) {
+                                return seat.getSeatNo() + " (already booked)";
+                            } else if (seat.getStatus() == SeatStatus.LOCKED) {
+                                return seat.getSeatNo() + " (locked by another user)";
+                            } else {
+                                return seat.getSeatNo() + " (not locked)";
+                            }
+                        })
+                        .collect(Collectors.toList());
 
-            if (alreadyLockedByUser) {
-                // Seats already locked by this user from /lock-seats endpoint
-                log.info("Seats already locked by user {}, proceeding with booking", user.getId());
-                seatsToBook = seats;
-            } else {
-                // Check if seats are available for locking
-                boolean allAvailable = seats.stream()
-                        .allMatch(seat -> seat.getStatus() == SeatStatus.AVAILABLE);
-
-                if (!allAvailable) {
-                    // Seats are locked by someone else or already booked
-                    throw new SeatsNotAvailable("One or more seats are not available");
-                }
-
-                // Lock the seats (for backward compatibility with direct booking)
-                log.info("Seats are available, locking them for user {} before booking", user.getId());
-                LocalDateTime lockTime = LocalDateTime.now();
-                for (ShowSeat seat : seats) {
-                    seat.setStatus(SeatStatus.LOCKED);
-                    seat.setLockedAt(lockTime);
-                    seat.setLockedByUserId(user.getId());
-                }
-                showSeatRepository.saveAll(seats);
-                seatsToBook = seats;
+                throw new SeatsNotAvailable(
+                    "Cannot book seats. You must lock seats first using /lock-seats endpoint. " +
+                    "Problem seats: " + String.join(", ", unavailableSeats));
             }
+
+            log.info("All seats are locked by user {}, proceeding with booking", user.getId());
+
+            // VALIDATION 2: Check if user has any OTHER locked seats for this show
+            // User must book ALL their locked seats, not just some
+            List<ShowSeat> allLockedSeatsForUser = show.getShowSeatList().stream()
+                    .filter(seat -> seat.getStatus() == SeatStatus.LOCKED &&
+                                   seat.getLockedByUserId() != null &&
+                                   seat.getLockedByUserId().equals(user.getId()))
+                    .collect(Collectors.toList());
+
+            if (allLockedSeatsForUser.size() != seats.size()) {
+                String lockedSeatNumbers = allLockedSeatsForUser.stream()
+                        .map(ShowSeat::getSeatNo)
+                        .collect(Collectors.joining(", "));
+                throw new IllegalStateException(
+                    String.format("You have %d seats locked (%s). You must book all locked seats together. " +
+                                 "Either book all %d seats or release them first.",
+                                 allLockedSeatsForUser.size(), lockedSeatNumbers, allLockedSeatsForUser.size()));
+            }
+
+            List<ShowSeat> seatsToBook = seats;
 
             // Step 2: Calculate total price
             Integer totalPrice = seatsToBook.stream()
@@ -285,7 +302,7 @@ public class TicketServiceImpl implements TicketService {
                     .eventName(show.getEvent().getName())
                     .eventType(show.getEvent().getEventType().toString())
                     .theaterName(show.getTheater().getName())
-                    .theaterAddress(show.getTheater().getAddress())
+                    .theaterAddress(show.getTheater().getVenue().getAddress())
                     .showTime(LocalDateTime.of(show.getDate().toLocalDate(), show.getTime().toLocalTime()))
                     .bookedSeats(ticket.getBookedSeats())
                     .totalSeats(seats.size())
@@ -431,8 +448,8 @@ public class TicketServiceImpl implements TicketService {
                 .eventName(show.getEvent().getName())
                 .eventType(show.getEvent().getEventType().toString())
                 .theaterName(show.getTheater().getName())
-                .theaterAddress(show.getTheater().getAddress())
-                .city(show.getTheater().getCity())
+                .theaterAddress(show.getTheater().getVenue().getAddress())
+                .city(show.getTheater().getVenue().getCity())
                 .build();
     }
 }
