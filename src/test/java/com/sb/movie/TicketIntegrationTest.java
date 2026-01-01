@@ -25,6 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Transactional
 class TicketIntegrationTest extends BaseIntegrationTest {
+    // Using mocked BookingEventProducer from BaseIntegrationTest
+    // Real Kafka testing will be done in production/staging environment
 
     @Autowired
     private TestRestTemplate restTemplate;

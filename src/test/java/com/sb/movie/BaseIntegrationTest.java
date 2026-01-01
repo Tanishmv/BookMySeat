@@ -1,6 +1,8 @@
 package com.sb.movie;
 
+import com.sb.movie.services.BookingEventProducer;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -8,6 +10,10 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 public abstract class BaseIntegrationTest {
+
+    // Mock Kafka for CRUD tests (TicketIntegrationTest will override this with real Kafka)
+    @MockBean
+    protected BookingEventProducer bookingEventProducer;
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
