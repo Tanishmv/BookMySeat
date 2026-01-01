@@ -1,37 +1,20 @@
 package com.sb.movie;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 public abstract class BaseIntegrationTest {
 
-    @TestConfiguration(proxyBeanMethods = false)
-    static class TestContainersConfiguration {
-
-        @Bean
-        @ServiceConnection
-        PostgreSQLContainer<?> postgresContainer() {
-            return new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"));
-        }
-
-        @Bean
-        @ServiceConnection(name = "redis")
-        GenericContainer<?> redisContainer() {
-            return new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-                    .withExposedPorts(6379);
-        }
-
-        @Bean
-        @ServiceConnection
-        KafkaContainer kafkaContainer() {
-            return new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"));
-        }
+    @DynamicPropertySource
+    static void overrideProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", () -> TestContainersConfig.getPostgres().getJdbcUrl());
+        registry.add("spring.datasource.username", () -> TestContainersConfig.getPostgres().getUsername());
+        registry.add("spring.datasource.password", () -> TestContainersConfig.getPostgres().getPassword());
+        registry.add("spring.data.redis.host", () -> TestContainersConfig.getRedis().getHost());
+        registry.add("spring.data.redis.port", () -> TestContainersConfig.getRedis().getMappedPort(6379));
     }
 }

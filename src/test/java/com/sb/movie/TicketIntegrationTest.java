@@ -88,7 +88,6 @@ class TicketIntegrationTest extends BaseIntegrationTest {
         EventRequest eventRequest = new EventRequest();
         eventRequest.setName("Test Movie " + UUID.randomUUID());
         eventRequest.setEventType(EventType.MOVIE);
-        eventRequest.setCity("Bangalore");
         eventRequest.setLanguage(Language.ENGLISH);
 
         HttpEntity<EventRequest> eventReq = new HttpEntity<>(eventRequest, headers);
@@ -134,14 +133,17 @@ class TicketIntegrationTest extends BaseIntegrationTest {
         );
         Integer theaterId = theatersResponse.getBody()[theatersResponse.getBody().length - 1].getId();
 
-        // 6. Create Show
+        // 6. Create Show (seats are automatically created with prices)
         ShowRequest showRequest = new ShowRequest();
         showRequest.setShowStartTime(Time.valueOf("18:00:00"));
         showRequest.setShowDate(Date.valueOf("2025-12-25"));
         showRequest.setEventId(eventId);
         showRequest.setTheaterId(theaterId);
+        showRequest.setPriceOfPremiumSeat(300);
+        showRequest.setPriceOfClassicSeat(200);
 
-        restTemplate.postForEntity("/api/shows/addNew", showRequest, String.class);
+        HttpEntity<ShowRequest> showReq = new HttpEntity<>(showRequest, headers);
+        restTemplate.exchange("/api/shows/addNew", HttpMethod.POST, showReq, String.class);
 
         // Get the created show ID
         ResponseEntity<Show[]> showsResponse = restTemplate.getForEntity(
@@ -149,14 +151,6 @@ class TicketIntegrationTest extends BaseIntegrationTest {
                 Show[].class
         );
         showId = showsResponse.getBody()[showsResponse.getBody().length - 1].getShowId();
-
-        // 7. Associate seats with show
-        ShowSeatRequest showSeatRequest = new ShowSeatRequest();
-        showSeatRequest.setShowId(showId);
-        showSeatRequest.setPriceOfPremiumSeat(300);
-        showSeatRequest.setPriceOfClassicSeat(200);
-
-        restTemplate.postForEntity("/api/shows/associateSeats", showSeatRequest, String.class);
     }
 
     @Test

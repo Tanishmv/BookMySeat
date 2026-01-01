@@ -38,6 +38,8 @@ public class SecurityConfiguration {
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                                 .requestMatchers("/actuator/**", "/error").permitAll()  // Allow actuator endpoints and error page
                                 .requestMatchers("/api/events/**", "/api/shows/**").permitAll()  // Allow browsing events and shows
+                                .requestMatchers("/venue", "/venue/*").permitAll()  // Allow browsing venues (GET)
+                                .requestMatchers("/venue/**").hasAnyAuthority("ROLE_ADMIN")  // Venue management (POST/PUT/DELETE) - admin only
                                 .requestMatchers("/theater", "/theater/*", "/theater/city/*").permitAll()  // Allow browsing theaters (GET)
                                 .requestMatchers("/theater/**").hasAnyAuthority("ROLE_ADMIN")  // Theater management (POST/PUT) - admin only
                                 .requestMatchers("/movie/**").hasAnyAuthority("ROLE_ADMIN")
