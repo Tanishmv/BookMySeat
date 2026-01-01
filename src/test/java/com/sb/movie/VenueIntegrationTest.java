@@ -63,16 +63,18 @@ class VenueIntegrationTest extends BaseIntegrationTest {
         createRequest.setDescription("Premium shopping and entertainment destination");
 
         HttpEntity<VenueRequest> createReq = new HttpEntity<>(createRequest, headers);
-        ResponseEntity<String> createResponse = restTemplate.exchange(
+        ResponseEntity<com.sb.movie.response.VenueResponse> createResponse = restTemplate.exchange(
                 "/venue/addNew",
                 HttpMethod.POST,
                 createReq,
-                String.class
+                com.sb.movie.response.VenueResponse.class
         );
 
         // Verify CREATE
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(createResponse.getBody()).contains("saved successfully");
+        assertThat(createResponse.getBody()).isNotNull();
+        assertThat(createResponse.getBody().getId()).isNotNull();
+        assertThat(createResponse.getBody().getName()).isEqualTo("Phoenix Marketcity Mall");
 
         // ========== READ - Get All (R) ==========
         ResponseEntity<VenueResponse[]> getAllResponse = restTemplate.getForEntity(
@@ -122,16 +124,17 @@ class VenueIntegrationTest extends BaseIntegrationTest {
         updateRequest.setDescription("Updated description - Premium mall with world-class facilities");
 
         HttpEntity<VenueRequest> updateReq = new HttpEntity<>(updateRequest, headers);
-        ResponseEntity<String> updateResponse = restTemplate.exchange(
+        ResponseEntity<com.sb.movie.response.VenueResponse> updateResponse = restTemplate.exchange(
                 "/venue/" + venueId,
                 HttpMethod.PUT,
                 updateReq,
-                String.class
+                com.sb.movie.response.VenueResponse.class
         );
 
         // Verify UPDATE
         assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(updateResponse.getBody()).contains("updated successfully");
+        assertThat(updateResponse.getBody()).isNotNull();
+        assertThat(updateResponse.getBody().getName()).isEqualTo("Phoenix Marketcity - Updated");
 
         // Verify update took effect
         ResponseEntity<VenueResponse> getUpdatedResponse = restTemplate.getForEntity(

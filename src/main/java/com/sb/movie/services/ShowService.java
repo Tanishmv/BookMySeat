@@ -12,7 +12,7 @@ import java.util.Map;
 
 public interface ShowService {
 
-    String addShow(ShowRequest showRequest);
+    Show addShow(ShowRequest showRequest);
 
     Show getShowById(Integer showId);
 
@@ -22,7 +22,7 @@ public interface ShowService {
 
     Map<String, Map<String, List<Show>>> getShowsGroupedByDateAndVenue();
 
-    String updateShow(Integer showId, ShowRequest showRequest) throws ShowDoesNotExists;
+    Show updateShow(Integer showId, ShowRequest showRequest) throws ShowDoesNotExists;
 
     String deleteShow(Integer showId) throws ShowDoesNotExists;
 

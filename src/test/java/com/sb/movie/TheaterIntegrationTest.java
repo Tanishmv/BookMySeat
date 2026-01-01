@@ -88,17 +88,18 @@ class TheaterIntegrationTest extends BaseIntegrationTest {
         createRequest.setNoOfPremiumSeat(30);
 
         HttpEntity<TheaterRequest> createReq = new HttpEntity<>(createRequest, headers);
-        ResponseEntity<String> createResponse = restTemplate.exchange(
+        ResponseEntity<com.sb.movie.response.TheaterResponse> createResponse = restTemplate.exchange(
                 "/theater/addNew",
                 HttpMethod.POST,
                 createReq,
-                String.class
+                com.sb.movie.response.TheaterResponse.class
         );
 
         // Verify CREATE
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(createResponse.getBody()).contains("saved successfully");
-        assertThat(createResponse.getBody()).contains("80 seats");
+        assertThat(createResponse.getBody()).isNotNull();
+        assertThat(createResponse.getBody().getId()).isNotNull();
+        assertThat(createResponse.getBody().getTotalSeats()).isEqualTo(80);
 
         // ========== READ - Get All (R) ==========
         ResponseEntity<TheaterResponse[]> getAllResponse = restTemplate.getForEntity(
@@ -149,16 +150,17 @@ class TheaterIntegrationTest extends BaseIntegrationTest {
         updateRequest.setName("IMAX Screen 1 - Premium");
 
         HttpEntity<TheaterUpdateRequest> updateReq = new HttpEntity<>(updateRequest, headers);
-        ResponseEntity<String> updateResponse = restTemplate.exchange(
+        ResponseEntity<com.sb.movie.response.TheaterResponse> updateResponse = restTemplate.exchange(
                 "/theater/" + theaterId,
                 HttpMethod.PUT,
                 updateReq,
-                String.class
+                com.sb.movie.response.TheaterResponse.class
         );
 
         // Verify UPDATE
         assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(updateResponse.getBody()).contains("updated successfully");
+        assertThat(updateResponse.getBody()).isNotNull();
+        assertThat(updateResponse.getBody().getName()).isEqualTo("IMAX Screen 1 - Premium");
 
         // Verify update took effect (only name should change, not venue or seats)
         ResponseEntity<TheaterResponse> getUpdatedResponse = restTemplate.getForEntity(

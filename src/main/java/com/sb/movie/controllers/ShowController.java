@@ -30,10 +30,10 @@ public class ShowController {
     @Operation(summary = "Create new show with seats",
                description = "Create a new show for an event at a specific venue with seat prices (Admin only). " +
                            "Seats are automatically created based on theater seats.")
-    public ResponseEntity<String> addShow(@RequestBody ShowRequest showRequest) {
+    public ResponseEntity<?> addShow(@RequestBody ShowRequest showRequest) {
         try {
-            String result = showService.addShow(showRequest);
-            return new ResponseEntity<>(result, HttpStatus.CREATED);
+            Show show = showService.addShow(showRequest);
+            return new ResponseEntity<>(show, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -89,10 +89,10 @@ public class ShowController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Update show", description = "Update show date and time")
-    public ResponseEntity<String> updateShow(@PathVariable Integer id, @RequestBody ShowRequest showRequest) {
+    public ResponseEntity<?> updateShow(@PathVariable Integer id, @RequestBody ShowRequest showRequest) {
         try {
-            String result = showService.updateShow(id, showRequest);
-            return new ResponseEntity<>(result, HttpStatus.OK);
+            Show show = showService.updateShow(id, showRequest);
+            return new ResponseEntity<>(show, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }

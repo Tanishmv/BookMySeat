@@ -63,13 +63,13 @@ A backend API for event and ticket booking built with Spring Boot. Allows users 
 
 | Category | Technologies |
 |----------|-------------|
-| Backend | Spring Boot 3.3.0, Java 17 |
+| Backend | Spring Boot 3.3.3, Java 17 |
 | Security | Spring Security, JWT, BCrypt |
 | Database | PostgreSQL 16, Spring Data JPA, Hibernate |
 | Caching | Redis 7, Jedis, Spring Cache |
-| Messaging | Apache Kafka 7.5, Zookeeper |
+| Messaging | Apache Kafka 7.5.0, Zookeeper |
 | API Docs | Swagger/OpenAPI 3.0 |
-| Testing | JUnit, Mockito, Testcontainers |
+| Testing | JUnit 5, Mockito, Testcontainers 2.0.2 |
 | DevOps | Docker, Docker Compose |
 | Build | Maven 3.6+ |
 
@@ -134,34 +134,37 @@ A backend API for event and ticket booking built with Spring Boot. Allows users 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/events` | Create event (Admin) |
-| GET | `/api/events` | Get all events |
+| GET | `/api/events` | Search events with optional query params: name, city, type, genre, language, date |
 | GET | `/api/events/{id}` | Get event by ID |
-| GET | `/api/events/type/{type}` | Filter by type |
-| GET | `/api/events/city/{city}` | Filter by city |
-| GET | `/api/events/genre/{genre}` | Filter by genre |
-| GET | `/api/events/language/{language}` | Filter by language |
-| GET | `/api/events/date/{date}` | Filter by date |
-| GET | `/api/events/search` | Search by city and type |
 | PUT | `/api/events/{id}` | Update event (Admin) |
 | DELETE | `/api/events/{id}` | Delete event (Admin) |
 
-**Event Types:** MOVIE, CONCERT, THEATER, DANCE_SHOW, COMEDY_SHOW, SPORTS, OPERA, EXHIBITION
+**Query Parameters for GET /api/events:**
+- `name` - Event name (partial match)
+- `city` - Filter by city
+- `type` - Filter by event type
+- `genre` - Filter by genre
+- `language` - Filter by language
+- `date` - Filter by date (yyyy-MM-dd)
+
+**Event Types:** `MOVIE`, `CONCERT`, `THEATER`, `DANCE_SHOW`, `COMEDY_SHOW`, `OPERA`
 
 ### Shows (Admin endpoints require authorization)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/shows/addNew` | Create show (Admin) |
-| POST | `/api/shows/associateSeats` | Set seat prices (Admin) |
-| GET | `/api/shows` | Get all shows |
+| POST | `/api/shows/addNew` | Create show with seat prices (Admin) |
+| GET | `/api/shows` | Search shows with optional query params: eventId, theaterId, date |
 | GET | `/api/shows/{id}` | Get show details |
-| GET | `/api/shows/event/{eventId}` | Shows for event |
-| GET | `/api/shows/theater/{theaterId}` | Shows at venue |
-| GET | `/api/shows/date/{date}` | Shows on date |
-| GET | `/api/shows/grouped` | Grouped by date & venue |
-| GET | `/api/shows/{id}/seats` | Seat availability |
+| GET | `/api/shows/grouped` | Get shows grouped by date & venue |
+| GET | `/api/shows/{id}/seats` | Get real-time seat availability |
 | PUT | `/api/shows/{id}` | Update show (Admin) |
 | DELETE | `/api/shows/{id}` | Delete show (Admin) |
+
+**Query Parameters for GET /api/shows:**
+- `eventId` - Filter by event ID
+- `theaterId` - Filter by theater ID
+- `date` - Filter by date (yyyy-MM-dd)
 
 ### Tickets (All require authentication)
 
@@ -178,11 +181,21 @@ A backend API for event and ticket booking built with Spring Boot. Allows users 
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/theater/addNew` | Create venue (Admin) |
-| POST | `/theater/addTheaterSeat` | Add seats (Admin) |
-| GET | `/theater` | Get all venues |
-| GET | `/theater/{id}` | Get venue by ID |
-| GET | `/theater/city/{city}` | Venues in city |
+| POST | `/venue/addNew` | Create venue (Admin) |
+| GET | `/venue` | Get all venues (optional ?city=X filter) |
+| GET | `/venue/{id}` | Get venue by ID |
+| PUT | `/venue/{id}` | Update venue (Admin) |
+| DELETE | `/venue/{id}` | Delete venue (Admin) |
+
+### Theaters (Admin endpoints require authorization)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/theater/addNew` | Create theater with seats (Admin) |
+| GET | `/theater` | Get all theaters |
+| GET | `/theater/{id}` | Get theater by ID |
+| PUT | `/theater/{id}` | Update theater (Admin) |
+| DELETE | `/theater/{id}` | Delete theater (Admin) |
 
 ---
 
@@ -265,7 +278,7 @@ A backend API for event and ticket booking built with Spring Boot. Allows users 
 mvn test
 ```
 
-Uses Testcontainers for PostgreSQL, Redis, and Kafka.
+**All 13 integration tests passing.** Uses Testcontainers for infrastructure services.
 
 ### Manual Testing
 - Swagger UI: http://localhost:8081/swagger-ui.html

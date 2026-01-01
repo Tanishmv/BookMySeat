@@ -33,7 +33,7 @@ public class Show {
 
     @ManyToOne
     @JoinColumn
-    @JsonBackReference
+    @JsonIgnore
     private Event event;
 
     @ManyToOne

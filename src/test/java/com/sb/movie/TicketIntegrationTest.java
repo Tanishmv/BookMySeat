@@ -19,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Date;
 import java.sql.Time;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -241,5 +243,66 @@ class TicketIntegrationTest extends BaseIntegrationTest {
         assertThat(response.getBody()).isNotNull();
         // Check that error message mentions seat unavailability
         assertThat(response.getBody().toLowerCase()).containsAnyOf("not available", "already", "booked", "unavailable");
+    }
+
+    @Test
+    void shouldHandleConcurrentSeatLocking() throws Exception {
+        // Given - 10 users trying to lock same seats simultaneously
+        int numberOfUsers = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(numberOfUsers);
+        CountDownLatch startLatch = new CountDownLatch(1); // Start all threads together
+        CountDownLatch doneLatch = new CountDownLatch(numberOfUsers); // Wait for all to finish
+
+        List<ResponseEntity<String>> results = new CopyOnWriteArrayList<>();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(userToken);
+
+        // When - All users try to lock seats 4A, 4B at the same time
+        for (int i = 0; i < numberOfUsers; i++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await(); // Wait for start signal
+
+                    SeatLockRequest lockRequest = new SeatLockRequest();
+                    lockRequest.setShowId(showId);
+                    lockRequest.setUserId(userId);
+                    lockRequest.setRequestSeats(Arrays.asList("4A", "4B"));
+
+                    HttpEntity<SeatLockRequest> request = new HttpEntity<>(lockRequest, headers);
+                    ResponseEntity<String> response = restTemplate.exchange(
+                        "/ticket/lock-seats",
+                        HttpMethod.POST,
+                        request,
+                        String.class
+                    );
+
+                    results.add(response);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown(); // Start all threads NOW
+        boolean finished = doneLatch.await(30, TimeUnit.SECONDS); // Wait max 30s
+        executor.shutdown();
+
+        // Then - Exactly ONE request should succeed, rest should fail
+        assertThat(finished).isTrue();
+        assertThat(results).hasSize(numberOfUsers);
+
+        long successCount = results.stream()
+            .filter(r -> r.getStatusCode().is2xxSuccessful())
+            .count();
+
+        long failureCount = results.stream()
+            .filter(r -> r.getStatusCode().is4xxClientError())
+            .count();
+
+        assertThat(successCount).isEqualTo(1); // Only ONE should lock successfully
+        assertThat(failureCount).isEqualTo(numberOfUsers - 1); // Others should fail
     }
 }

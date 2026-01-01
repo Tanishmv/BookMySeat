@@ -5,6 +5,7 @@ import com.sb.movie.request.RefreshTokenRequest;
 import com.sb.movie.response.AuthResponse;
 import com.sb.movie.security.JWTService;
 import com.sb.movie.services.RefreshTokenService;
+import com.sb.movie.services.TokenBlacklistService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticate user and return access and refresh tokens")
@@ -110,11 +112,24 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "User logout", description = "Revoke refresh token for current user")
-    public ResponseEntity<?> logout(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+    @Operation(summary = "User logout", description = "Revoke access token and refresh token")
+    public ResponseEntity<?> logout(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody RefreshTokenRequest refreshTokenRequest) {
         try {
             log.info("Logout request received");
 
+            // Extract access token from Authorization header
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String accessToken = authHeader.substring(7);
+
+                // Blacklist the access token
+                long expirationTime = jwtService.getExpirationTimeMs(accessToken);
+                tokenBlacklistService.blacklistToken(accessToken, expirationTime);
+                log.info("Access token blacklisted");
+            }
+
+            // Revoke refresh token
             refreshTokenService.revokeRefreshToken(refreshTokenRequest.getRefreshToken());
 
             log.info("User logged out successfully");

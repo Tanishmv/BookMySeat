@@ -34,13 +34,13 @@ public class TheaterController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Theater created successfully",
-                    content = @Content(schema = @Schema(implementation = String.class))),
+                    content = @Content(schema = @Schema(implementation = TheaterResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request data or venue not found")
     })
-    public ResponseEntity<String> addTheater(@RequestBody TheaterRequest request) {
+    public ResponseEntity<?> addTheater(@RequestBody TheaterRequest request) {
         try {
-            String result = theaterService.addTheater(request);
-            return new ResponseEntity<>(result, HttpStatus.CREATED);
+            TheaterResponse theater = theaterService.addTheater(request);
+            return new ResponseEntity<>(theater, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -104,7 +104,7 @@ public class TheaterController {
             @ApiResponse(responseCode = "400", description = "Invalid request data or name is blank"),
             @ApiResponse(responseCode = "404", description = "Theater not found")
     })
-    public ResponseEntity<String> updateTheater(
+    public ResponseEntity<?> updateTheater(
             @Parameter(description = "Theater ID", required = true)
             @PathVariable Integer id,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -113,8 +113,8 @@ public class TheaterController {
                     content = @Content(schema = @Schema(implementation = TheaterUpdateRequest.class)))
             @Valid @RequestBody TheaterUpdateRequest request) {
         try {
-            String result = theaterService.updateTheater(id, request);
-            return new ResponseEntity<>(result, HttpStatus.OK);
+            com.sb.movie.response.TheaterResponse theater = theaterService.updateTheater(id, request);
+            return new ResponseEntity<>(theater, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }

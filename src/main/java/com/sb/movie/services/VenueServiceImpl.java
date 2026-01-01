@@ -7,7 +7,9 @@ import com.sb.movie.request.VenueRequest;
 import com.sb.movie.response.VenueResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,15 +25,15 @@ public class VenueServiceImpl implements VenueService {
     @Override
     @Transactional
     @CacheEvict(value = {"venues", "venuesByCity"}, allEntries = true)
-    public String addVenue(VenueRequest venueRequest) {
+    public VenueResponse addVenue(VenueRequest venueRequest) {
         Venue existingVenue = venueRepository.findByAddress(venueRequest.getAddress());
         if (existingVenue != null) {
             throw new RuntimeException("Venue already exists at this address");
         }
 
         Venue venue = VenueConverter.venueRequestToVenue(venueRequest);
-        venue = venueRepository.save(venue);
-        return "Venue has been saved successfully with ID: " + venue.getId();
+        Venue saved = venueRepository.save(venue);
+        return VenueConverter.venueToVenueResponse(saved);
     }
 
     @Override
@@ -62,8 +64,14 @@ public class VenueServiceImpl implements VenueService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"venues", "venueById", "venuesByCity"}, allEntries = true)
-    public String updateVenue(Integer id, VenueRequest venueRequest) {
+    @Caching(
+            put = @CachePut(value = "venueById", key = "#id"),
+            evict = {
+                    @CacheEvict(value = "venues", allEntries = true),
+                    @CacheEvict(value = "venuesByCity", allEntries = true)
+            }
+    )
+    public VenueResponse updateVenue(Integer id, VenueRequest venueRequest) {
         Venue venue = venueRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Venue not found with ID: " + id));
 
@@ -72,8 +80,8 @@ public class VenueServiceImpl implements VenueService {
         venue.setCity(venueRequest.getCity());
         venue.setDescription(venueRequest.getDescription());
 
-        venueRepository.save(venue);
-        return "Venue updated successfully";
+        Venue updated = venueRepository.save(venue);
+        return VenueConverter.venueToVenueResponse(updated);
     }
 
     @Override

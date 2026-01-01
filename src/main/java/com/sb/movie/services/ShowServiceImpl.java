@@ -46,7 +46,7 @@ public class ShowServiceImpl implements ShowService{
             @CacheEvict(value = "showDetails", allEntries = true),
             @CacheEvict(value = "eventById", key = "#showRequest.eventId")
     })
-    public String addShow(ShowRequest showRequest) {
+    public Show addShow(ShowRequest showRequest) {
         log.info("Adding new show for event ID: {} at theater ID: {}",
                 showRequest.getEventId(), showRequest.getTheaterId());
 
@@ -92,17 +92,17 @@ public class ShowServiceImpl implements ShowService{
             showSeatList.add(showSeat);
         }
 
-        show = showRepository.save(show);
+        Show saved = showRepository.save(show);
 
-        event.getShows().add(show);
-        theater.getShowList().add(show);
+        event.getShows().add(saved);
+        theater.getShowList().add(saved);
 
         eventRepository.save(event);
         theaterRepository.save(theater);
 
         log.info("Show added successfully with ID: {} and {} seats created",
-                show.getShowId(), showSeatList.size());
-        return "Show has been added successfully with " + showSeatList.size() + " seats";
+                saved.getShowId(), showSeatList.size());
+        return saved;
     }
 
     @Override
@@ -224,17 +224,27 @@ public class ShowServiceImpl implements ShowService{
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "showById", key = "#showId"),
-            @CacheEvict(value = "showDetails", key = "#showId"),
-            @CacheEvict(value = "showSearch", allEntries = true),
-            @CacheEvict(value = "showsGrouped", allEntries = true)
-    })
-    public String updateShow(Integer showId, ShowRequest showRequest) throws ShowDoesNotExists {
+    @Caching(
+            put = @org.springframework.cache.annotation.CachePut(value = "showById", key = "#showId"),
+            evict = {
+                    @CacheEvict(value = "showDetails", key = "#showId"),
+                    @CacheEvict(value = "showSearch", allEntries = true),
+                    @CacheEvict(value = "showsGrouped", allEntries = true)
+            }
+    )
+    public Show updateShow(Integer showId, ShowRequest showRequest) throws ShowDoesNotExists {
         log.info("Updating show ID: {}", showId);
 
         Show show = showRepository.findById(showId)
                 .orElseThrow(() -> new ShowDoesNotExists());
+
+        // Validate that event and theater cannot be changed
+        if (showRequest.getEventId() != null && !showRequest.getEventId().equals(show.getEvent().getId())) {
+            throw new IllegalArgumentException("Cannot change the event for an existing show");
+        }
+        if (showRequest.getTheaterId() != null && !showRequest.getTheaterId().equals(show.getTheater().getId())) {
+            throw new IllegalArgumentException("Cannot change the theater for an existing show");
+        }
 
         // Validate that new date/time is not in the past
         if (showRequest.getShowDate() != null || showRequest.getShowStartTime() != null) {
@@ -258,9 +268,9 @@ public class ShowServiceImpl implements ShowService{
             show.setTime(showRequest.getShowStartTime());
         }
 
-        showRepository.save(show);
-        log.info("Show ID: {} updated successfully and cache evicted", showId);
-        return "Show updated successfully";
+        Show updated = showRepository.save(show);
+        log.info("Show ID: {} updated successfully and cache updated", showId);
+        return updated;
     }
 
     @Override

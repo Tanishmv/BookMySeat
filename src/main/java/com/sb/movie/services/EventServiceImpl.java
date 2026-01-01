@@ -30,7 +30,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     @CacheEvict(value = "eventSearch", allEntries = true)
-    public String addEvent(EventRequest eventRequest) {
+    public Event addEvent(EventRequest eventRequest) {
         log.info("Adding new event: {}", eventRequest.getName());
 
         // Validate genre usage
@@ -44,10 +44,10 @@ public class EventServiceImpl implements EventService {
         }
 
         Event event = EventConvertor.eventDtoToEvent(eventRequest);
-        eventRepository.save(event);
+        Event saved = eventRepository.save(event);
 
-        log.info("Event '{}' added successfully and cache evicted", event.getName());
-        return "Event '" + event.getName() + "' has been added successfully";
+        log.info("Event '{}' added successfully with ID: {}", saved.getName(), saved.getId());
+        return saved;
     }
 
     @Override
@@ -78,11 +78,11 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "eventById", key = "#eventId"),
-            @CacheEvict(value = "eventSearch", allEntries = true)
-    })
-    public String updateEvent(Integer eventId, EventRequest eventRequest) {
+    @Caching(
+            put = @org.springframework.cache.annotation.CachePut(value = "eventById", key = "#eventId"),
+            evict = @CacheEvict(value = "eventSearch", allEntries = true)
+    )
+    public Event updateEvent(Integer eventId, EventRequest eventRequest) {
         log.info("Updating event with ID: {}", eventId);
 
         // Validate genre usage
@@ -103,10 +103,10 @@ public class EventServiceImpl implements EventService {
         existingEvent.setDescription(eventRequest.getDescription());
         existingEvent.setPosterUrl(eventRequest.getPosterUrl());
 
-        eventRepository.save(existingEvent);
+        Event updated = eventRepository.save(existingEvent);
 
-        log.info("Event '{}' updated successfully and cache evicted", existingEvent.getName());
-        return "Event '" + existingEvent.getName() + "' has been updated successfully";
+        log.info("Event '{}' updated successfully and cache updated", updated.getName());
+        return updated;
     }
 
     @Override
@@ -119,10 +119,11 @@ public class EventServiceImpl implements EventService {
         log.info("Deleting event with ID: {}", eventId);
 
         Event event = getEventById(eventId);
+        String eventName = event.getName();
         eventRepository.delete(event);
 
-        log.info("Event '{}' deleted successfully and cache evicted", event.getName());
-        return "Event '" + event.getName() + "' has been deleted successfully";
+        log.info("Event '{}' deleted successfully and cache evicted", eventName);
+        return "Event '" + eventName + "' has been deleted successfully";
     }
 
     /**

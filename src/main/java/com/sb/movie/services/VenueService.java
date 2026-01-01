@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface VenueService {
 
-    String addVenue(VenueRequest venueRequest);
+    VenueResponse addVenue(VenueRequest venueRequest);
 
     VenueResponse getVenueById(Integer id);
 
@@ -16,7 +16,7 @@ public interface VenueService {
 
     List<VenueResponse> getVenuesByCity(String city);
 
-    String updateVenue(Integer id, VenueRequest venueRequest);
+    VenueResponse updateVenue(Integer id, VenueRequest venueRequest);
 
     String deleteVenue(Integer id);
 }

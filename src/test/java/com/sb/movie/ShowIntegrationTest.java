@@ -142,17 +142,18 @@ class ShowIntegrationTest extends BaseIntegrationTest {
         createRequest.setPriceOfPremiumSeat(450);
 
         HttpEntity<ShowRequest> createReq = new HttpEntity<>(createRequest, headers);
-        ResponseEntity<String> createResponse = restTemplate.exchange(
+        ResponseEntity<Show> createResponse = restTemplate.exchange(
                 "/api/shows/addNew",
                 HttpMethod.POST,
                 createReq,
-                String.class
+                Show.class
         );
 
         // Verify CREATE
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(createResponse.getBody()).contains("added successfully");
-        assertThat(createResponse.getBody()).contains("100 seats"); // 60 + 40
+        assertThat(createResponse.getBody()).isNotNull();
+        assertThat(createResponse.getBody().getShowId()).isNotNull();
+        // Note: showSeatList has @JsonIgnore, so it's not included in JSON response
 
         // ========== READ - Search Shows (R) ==========
         ResponseEntity<Show[]> searchResponse = restTemplate.getForEntity(
@@ -189,16 +190,17 @@ class ShowIntegrationTest extends BaseIntegrationTest {
         updateRequest.setShowStartTime(Time.valueOf(LocalTime.of(20, 0, 0))); // New time
 
         HttpEntity<ShowRequest> updateReq = new HttpEntity<>(updateRequest, headers);
-        ResponseEntity<String> updateResponse = restTemplate.exchange(
+        ResponseEntity<Show> updateResponse = restTemplate.exchange(
                 "/api/shows/" + showId,
                 HttpMethod.PUT,
                 updateReq,
-                String.class
+                Show.class
         );
 
         // Verify UPDATE
         assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(updateResponse.getBody()).contains("updated successfully");
+        assertThat(updateResponse.getBody()).isNotNull();
+        assertThat(updateResponse.getBody().getTime()).isEqualTo(Time.valueOf(LocalTime.of(20, 0, 0)));
 
         // ========== DELETE (D) ==========
         HttpEntity<Void> deleteReq = new HttpEntity<>(headers);

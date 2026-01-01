@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface TheaterService {
 
-    String addTheater(TheaterRequest theaterRequest) throws TheaterIsExist;
+    TheaterResponse addTheater(TheaterRequest theaterRequest) throws TheaterIsExist;
 
     List<TheaterResponse> getAllTheaters();
 
@@ -19,7 +19,7 @@ public interface TheaterService {
 
     List<TheaterResponse> getTheatersByCity(String city);
 
-    String updateTheater(Integer id, TheaterUpdateRequest theaterUpdateRequest) throws TheaterIsNotExist;
+    TheaterResponse updateTheater(Integer id, TheaterUpdateRequest theaterUpdateRequest) throws TheaterIsNotExist;
 
     String deleteTheater(Integer id) throws TheaterIsNotExist;
 }

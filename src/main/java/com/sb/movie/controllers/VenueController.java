@@ -32,13 +32,13 @@ public class VenueController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Venue created successfully",
-                    content = @Content(schema = @Schema(implementation = String.class))),
+                    content = @Content(schema = @Schema(implementation = VenueResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request data or venue already exists at the address")
     })
-    public ResponseEntity<String> addVenue(@RequestBody VenueRequest request) {
+    public ResponseEntity<?> addVenue(@RequestBody VenueRequest request) {
         try {
-            String result = venueService.addVenue(request);
-            return new ResponseEntity<>(result, HttpStatus.CREATED);
+            VenueResponse venue = venueService.addVenue(request);
+            return new ResponseEntity<>(venue, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -102,13 +102,13 @@ public class VenueController {
             @ApiResponse(responseCode = "400", description = "Invalid request data"),
             @ApiResponse(responseCode = "404", description = "Venue not found")
     })
-    public ResponseEntity<String> updateVenue(
+    public ResponseEntity<?> updateVenue(
             @Parameter(description = "Venue ID", required = true)
             @PathVariable Integer id,
             @RequestBody VenueRequest request) {
         try {
-            String result = venueService.updateVenue(id, request);
-            return new ResponseEntity<>(result, HttpStatus.OK);
+            com.sb.movie.response.VenueResponse venue = venueService.updateVenue(id, request);
+            return new ResponseEntity<>(venue, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }

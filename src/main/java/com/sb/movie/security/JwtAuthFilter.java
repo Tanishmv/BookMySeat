@@ -1,5 +1,6 @@
 package com.sb.movie.security;
 
+import com.sb.movie.services.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +24,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private UserInfoUserDetailsService userDetailsService;
 
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -33,6 +37,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 token = authHeader.substring(7);
+
+                // Check if token is blacklisted
+                if (tokenBlacklistService.isBlacklisted(token)) {
+                    System.out.println("JWT Filter - Token is blacklisted (user logged out)");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Token has been revoked. Please login again.");
+                    return;
+                }
+
                 username = jwtService.extractUsername(token);
                 System.out.println("JWT Filter - Extracted username: " + username);
             }

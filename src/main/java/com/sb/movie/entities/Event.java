@@ -2,6 +2,7 @@ package com.sb.movie.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sb.movie.enums.EventType;
 import com.sb.movie.enums.Genre;
 import com.sb.movie.enums.Language;
@@ -58,7 +59,7 @@ public class Event {
     private String posterUrl;   // Event poster/image URL
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonIgnore
     @Builder.Default
     private List<Show> shows = new ArrayList<>();
 }

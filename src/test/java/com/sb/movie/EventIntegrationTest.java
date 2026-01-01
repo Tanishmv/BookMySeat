@@ -73,16 +73,18 @@ class EventIntegrationTest extends BaseIntegrationTest {
         createRequest.setDescription("The epic conclusion to the Infinity Saga");
 
         HttpEntity<EventRequest> createReq = new HttpEntity<>(createRequest, headers);
-        ResponseEntity<String> createResponse = restTemplate.exchange(
+        ResponseEntity<Event> createResponse = restTemplate.exchange(
                 "/api/events",
                 HttpMethod.POST,
                 createReq,
-                String.class
+                Event.class
         );
 
         // Verify CREATE
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(createResponse.getBody()).contains("added successfully");
+        assertThat(createResponse.getBody()).isNotNull();
+        assertThat(createResponse.getBody().getId()).isNotNull();
+        assertThat(createResponse.getBody().getName()).isEqualTo("Avengers Endgame");
 
         // ========== READ - Get All (R) ==========
         ResponseEntity<Event[]> getAllResponse = restTemplate.getForEntity(
@@ -128,16 +130,17 @@ class EventIntegrationTest extends BaseIntegrationTest {
         updateRequest.setDescription("Remastered version with enhanced visuals");
 
         HttpEntity<EventRequest> updateReq = new HttpEntity<>(updateRequest, headers);
-        ResponseEntity<String> updateResponse = restTemplate.exchange(
+        ResponseEntity<Event> updateResponse = restTemplate.exchange(
                 "/api/events/" + eventId,
                 HttpMethod.PUT,
                 updateReq,
-                String.class
+                Event.class
         );
 
         // Verify UPDATE
         assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(updateResponse.getBody()).contains("updated successfully");
+        assertThat(updateResponse.getBody()).isNotNull();
+        assertThat(updateResponse.getBody().getName()).isEqualTo("Avengers Endgame - Remastered");
 
         // Verify update took effect
         ResponseEntity<Event> getUpdatedResponse = restTemplate.getForEntity(

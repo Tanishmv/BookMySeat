@@ -32,10 +32,10 @@ public class EventController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Add new event", description = "Create a new event (Admin only)")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<String> addEvent(@RequestBody EventRequest eventRequest) {
+    public ResponseEntity<?> addEvent(@RequestBody EventRequest eventRequest) {
         try {
-            String result = eventService.addEvent(eventRequest);
-            return new ResponseEntity<>(result, HttpStatus.CREATED);
+            Event event = eventService.addEvent(eventRequest);
+            return new ResponseEntity<>(event, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -74,12 +74,12 @@ public class EventController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update event", description = "Update an existing event (Admin only)")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<String> updateEvent(
+    public ResponseEntity<?> updateEvent(
             @PathVariable Integer id,
             @RequestBody EventRequest eventRequest) {
         try {
-            String result = eventService.updateEvent(id, eventRequest);
-            return new ResponseEntity<>(result, HttpStatus.OK);
+            Event event = eventService.updateEvent(id, eventRequest);
+            return new ResponseEntity<>(event, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }

@@ -13,6 +13,10 @@ import com.sb.movie.request.TheaterRequest;
 import com.sb.movie.request.TheaterUpdateRequest;
 import com.sb.movie.response.TheaterResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +34,8 @@ public class TheaterServiceImpl implements TheaterService{
 
     @Override
     @Transactional
-    public String addTheater(TheaterRequest theaterRequest) throws TheaterIsExist {
+    @CacheEvict(value = {"allTheaters", "theatersByCity"}, allEntries = true)
+    public TheaterResponse addTheater(TheaterRequest theaterRequest) throws TheaterIsExist {
         Theater theater = TheaterConvertor.theaterDtoToTheater(theaterRequest);
 
         // Fetch and set venue (required)
@@ -87,12 +92,12 @@ public class TheaterServiceImpl implements TheaterService{
             seatList.add(theaterSeat);
         }
 
-        theater = theaterRepository.save(theater);
-        return "Theater has been saved successfully with ID: " + theater.getId() +
-               " with " + seatList.size() + " seats";
+        Theater saved = theaterRepository.save(theater);
+        return TheaterConvertor.theaterToTheaterResponse(saved);
     }
 
     @Override
+    @Cacheable(value = "allTheaters")
     public List<TheaterResponse> getAllTheaters() {
         List<Theater> theaters = theaterRepository.findAll();
         return theaters.stream()
@@ -101,6 +106,7 @@ public class TheaterServiceImpl implements TheaterService{
     }
 
     @Override
+    @Cacheable(value = "theaterById", key = "#id", unless = "#result == null")
     public TheaterResponse getTheaterById(Integer id) throws TheaterIsNotExist {
         Theater theater = theaterRepository.findById(id)
                 .orElseThrow(() -> new TheaterIsNotExist());
@@ -108,6 +114,7 @@ public class TheaterServiceImpl implements TheaterService{
     }
 
     @Override
+    @Cacheable(value = "theatersByCity", key = "#city")
     public List<TheaterResponse> getTheatersByCity(String city) {
         List<Theater> theaters = theaterRepository.findByCity(city);
         return theaters.stream()
@@ -117,7 +124,14 @@ public class TheaterServiceImpl implements TheaterService{
 
     @Override
     @Transactional
-    public String updateTheater(Integer id, TheaterUpdateRequest theaterUpdateRequest) throws TheaterIsNotExist {
+    @Caching(
+            put = @CachePut(value = "theaterById", key = "#id"),
+            evict = {
+                    @CacheEvict(value = "allTheaters", allEntries = true),
+                    @CacheEvict(value = "theatersByCity", allEntries = true)
+            }
+    )
+    public TheaterResponse updateTheater(Integer id, TheaterUpdateRequest theaterUpdateRequest) throws TheaterIsNotExist {
         Theater theater = theaterRepository.findById(id)
                 .orElseThrow(() -> new TheaterIsNotExist());
 
@@ -125,12 +139,13 @@ public class TheaterServiceImpl implements TheaterService{
         // A theater is physically located at a venue and cannot be moved
         theater.setName(theaterUpdateRequest.getName());
 
-        theaterRepository.save(theater);
-        return "Theater updated successfully";
+        Theater updated = theaterRepository.save(theater);
+        return TheaterConvertor.theaterToTheaterResponse(updated);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = {"theaterById", "allTheaters", "theatersByCity"}, allEntries = true)
     public String deleteTheater(Integer id) throws TheaterIsNotExist {
         Theater theater = theaterRepository.findById(id)
                 .orElseThrow(() -> new TheaterIsNotExist());
