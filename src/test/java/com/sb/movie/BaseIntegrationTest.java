@@ -11,7 +11,6 @@ import org.springframework.test.context.DynamicPropertySource;
 @ActiveProfiles("test")
 public abstract class BaseIntegrationTest {
 
-    // Mock Kafka for CRUD tests (TicketIntegrationTest will override this with real Kafka)
     @MockBean
     protected BookingEventProducer bookingEventProducer;
 

@@ -58,11 +58,7 @@ public class BookingEventConsumer {
             // Simulate email sending
             emailNotificationService.sendBookingConfirmationEmail(event);
 
-            // Additional processing could be added here:
-            // - Send SMS notification
-            // - Update analytics/metrics
-            // - Store in data warehouse
-            // - Trigger third-party integrations
+            
 
             log.info("[SUCCESS] Processed BookingConfirmedEvent for booking ID: {}",
                     event.getBookingId());
@@ -75,11 +71,7 @@ public class BookingEventConsumer {
             log.error("[ERROR] Failed to process BookingConfirmedEvent from partition: {} at offset: {}. Error: {}",
                     partition, offset, e.getMessage(), e);
 
-            // In a production system, you might want to:
-            // 1. Send to a dead-letter queue (DLQ)
-            // 2. Implement retry logic
-            // 3. Alert monitoring systems
-            // For now, we'll acknowledge to prevent reprocessing
+           
             acknowledgment.acknowledge();
             log.warn("Message acknowledged despite processing failure to prevent infinite retries");
         }
