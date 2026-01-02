@@ -56,19 +56,23 @@ public class EventController {
 
     @GetMapping
     @Operation(summary = "Search events",
-               description = "Search events with optional filters: name, city, type, genre, language, date (format: yyyy-MM-dd). " +
+               description = "Search events with optional filters: name, city, type, genre, language, showDate, releaseDate (format: yyyy-MM-dd). " +
                            "All parameters are optional. Leave blank to get all events. " +
-                           "Name search is partial match (case-insensitive).")
+                           "Name search is partial match (case-insensitive). " +
+                           "showDate filters events that have shows scheduled on that date. " +
+                           "releaseDate filters events released on that date.")
     public ResponseEntity<List<Event>> searchEvents(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) EventType type,
             @RequestParam(required = false) Genre genre,
             @RequestParam(required = false) Language language,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate showDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate releaseDate) {
         // Convert LocalDate to java.sql.Date for service layer
-        Date sqlDate = date != null ? Date.valueOf(date) : null;
-        List<Event> events = eventService.searchEvents(name, city, type, genre, language, sqlDate);
+        Date sqlShowDate = showDate != null ? Date.valueOf(showDate) : null;
+        Date sqlReleaseDate = releaseDate != null ? Date.valueOf(releaseDate) : null;
+        List<Event> events = eventService.searchEvents(name, city, type, genre, language, sqlShowDate, sqlReleaseDate);
         return new ResponseEntity<>(events, HttpStatus.OK);
     }
 

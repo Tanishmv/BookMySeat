@@ -15,7 +15,7 @@ public interface EventService {
 
     Event getEventById(Integer eventId);
 
-    List<Event> searchEvents(String name, String city, EventType eventType, Genre genre, Language language, Date date);
+    List<Event> searchEvents(String name, String city, EventType eventType, Genre genre, Language language, Date showDate, Date releaseDate);
 
     Event updateEvent(Integer eventId, EventUpdateRequest eventUpdateRequest);
 

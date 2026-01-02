@@ -63,18 +63,18 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "eventSearch",
-               key = "#name + '_' + #city + '_' + #eventType + '_' + #genre + '_' + #language + '_' + #date",
+               key = "#name + '_' + #city + '_' + #eventType + '_' + #genre + '_' + #language + '_' + #showDate + '_' + #releaseDate",
                unless = "#result == null || #result.isEmpty()")
-    public List<Event> searchEvents(String name, String city, EventType eventType, Genre genre, Language language, Date date) {
-        log.debug("Searching events with filters - name: {}, city: {}, type: {}, genre: {}, language: {}, date: {}",
-                  name, city, eventType, genre, language, date);
+    public List<Event> searchEvents(String name, String city, EventType eventType, Genre genre, Language language, Date showDate, Date releaseDate) {
+        log.debug("Searching events with filters - name: {}, city: {}, type: {}, genre: {}, language: {}, showDate: {}, releaseDate: {}",
+                  name, city, eventType, genre, language, showDate, releaseDate);
 
         // Convert enums to strings for native query
         String eventTypeStr = eventType != null ? eventType.name() : null;
         String genreStr = genre != null ? genre.name() : null;
         String languageStr = language != null ? language.name() : null;
 
-        return eventRepository.searchEvents(name, city, eventTypeStr, genreStr, languageStr, date);
+        return eventRepository.searchEvents(name, city, eventTypeStr, genreStr, languageStr, showDate, releaseDate);
     }
 
     @Override

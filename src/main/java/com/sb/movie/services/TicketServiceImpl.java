@@ -56,6 +56,7 @@ public class TicketServiceImpl implements TicketService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "showById", key = "#seatLockRequest.showId"),
+            @CacheEvict(value = "showDetails", key = "#seatLockRequest.showId"),
             @CacheEvict(value = "seatAvailability", key = "#seatLockRequest.showId")
     })
     public SeatLockResponse lockSeats(SeatLockRequest seatLockRequest) {
@@ -116,6 +117,7 @@ public class TicketServiceImpl implements TicketService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "showById", key = "#seatLockRequest.showId"),
+            @CacheEvict(value = "showDetails", key = "#seatLockRequest.showId"),
             @CacheEvict(value = "seatAvailability", key = "#seatLockRequest.showId")
     })
     public void releaseSeats(SeatLockRequest seatLockRequest) {
@@ -147,6 +149,7 @@ public class TicketServiceImpl implements TicketService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "showById", key = "#ticketRequest.showId"),
+            @CacheEvict(value = "showDetails", key = "#ticketRequest.showId"),
             @CacheEvict(value = "seatAvailability", key = "#ticketRequest.showId")
     })
     public TicketResponse ticketBooking(TicketRequest ticketRequest) {
@@ -419,6 +422,9 @@ public class TicketServiceImpl implements TicketService {
         Integer showId = show.getShowId();
         if (cacheManager.getCache("showById") != null) {
             cacheManager.getCache("showById").evict(showId);
+        }
+        if (cacheManager.getCache("showDetails") != null) {
+            cacheManager.getCache("showDetails").evict(showId);
         }
         if (cacheManager.getCache("seatAvailability") != null) {
             cacheManager.getCache("seatAvailability").evict(showId);
