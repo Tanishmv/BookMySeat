@@ -23,8 +23,9 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
            "(:eventType IS NULL OR e.event_type = CAST(:eventType AS VARCHAR)) AND " +
            "(:genre IS NULL OR e.genre = CAST(:genre AS VARCHAR)) AND " +
            "(:language IS NULL OR e.language = CAST(:language AS VARCHAR)) AND " +
-           "(CAST(:showDate AS DATE) IS NULL OR s.date = :showDate) AND " +
-           "(CAST(:releaseDate AS DATE) IS NULL OR e.release_date = :releaseDate)",
+           "(CAST(:showDate AS DATE) IS NULL AND CAST(:releaseDate AS DATE) IS NULL OR " +
+           "CAST(:showDate AS DATE) IS NOT NULL AND s.date = :showDate OR " +
+           "CAST(:releaseDate AS DATE) IS NOT NULL AND e.release_date = :releaseDate)",
            nativeQuery = true)
     List<Event> searchEvents(@Param("name") String name,
                              @Param("city") String city,
