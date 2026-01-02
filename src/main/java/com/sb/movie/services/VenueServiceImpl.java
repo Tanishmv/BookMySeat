@@ -4,6 +4,7 @@ import com.sb.movie.converter.VenueConverter;
 import com.sb.movie.entities.Venue;
 import com.sb.movie.repositories.VenueRepository;
 import com.sb.movie.request.VenueRequest;
+import com.sb.movie.request.VenueUpdateRequest;
 import com.sb.movie.response.VenueResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -71,14 +72,23 @@ public class VenueServiceImpl implements VenueService {
                     @CacheEvict(value = "venuesByCity", allEntries = true)
             }
     )
-    public VenueResponse updateVenue(Integer id, VenueRequest venueRequest) {
+    public VenueResponse updateVenue(Integer id, VenueUpdateRequest venueUpdateRequest) {
         Venue venue = venueRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Venue not found with ID: " + id));
 
-        venue.setName(venueRequest.getName());
-        venue.setAddress(venueRequest.getAddress());
-        venue.setCity(venueRequest.getCity());
-        venue.setDescription(venueRequest.getDescription());
+        // Only update fields that are not null
+        if (venueUpdateRequest.getName() != null) {
+            venue.setName(venueUpdateRequest.getName());
+        }
+        if (venueUpdateRequest.getAddress() != null) {
+            venue.setAddress(venueUpdateRequest.getAddress());
+        }
+        if (venueUpdateRequest.getCity() != null) {
+            venue.setCity(venueUpdateRequest.getCity());
+        }
+        if (venueUpdateRequest.getDescription() != null) {
+            venue.setDescription(venueUpdateRequest.getDescription());
+        }
 
         Venue updated = venueRepository.save(venue);
         return VenueConverter.venueToVenueResponse(updated);

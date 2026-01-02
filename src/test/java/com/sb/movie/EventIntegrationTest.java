@@ -7,6 +7,7 @@ import com.sb.movie.enums.Gender;
 import com.sb.movie.enums.Genre;
 import com.sb.movie.enums.Language;
 import com.sb.movie.request.EventRequest;
+import com.sb.movie.request.EventUpdateRequest;
 import com.sb.movie.request.UserRequest;
 import com.sb.movie.response.AuthResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -117,19 +118,13 @@ class EventIntegrationTest extends BaseIntegrationTest {
         assertThat(getByIdResponse.getBody().getRating()).isEqualTo(8.4);
 
         // ========== UPDATE (U) ==========
-        EventRequest updateRequest = new EventRequest();
+        EventUpdateRequest updateRequest = new EventUpdateRequest();
         updateRequest.setName("Avengers Endgame - Remastered");
-        updateRequest.setEventType(EventType.MOVIE);
-        updateRequest.setDuration(181);
         updateRequest.setRating(8.8); // Updated rating
         updateRequest.setReleaseDate(Date.valueOf("2024-04-26")); // Re-release date
-        updateRequest.setGenre(Genre.ACTION);
-        updateRequest.setLanguage(Language.ENGLISH);
-        updateRequest.setDirector("Russo Brothers");
-        updateRequest.setPerformers("Robert Downey Jr., Chris Evans, Scarlett Johansson");
         updateRequest.setDescription("Remastered version with enhanced visuals");
 
-        HttpEntity<EventRequest> updateReq = new HttpEntity<>(updateRequest, headers);
+        HttpEntity<EventUpdateRequest> updateReq = new HttpEntity<>(updateRequest, headers);
         ResponseEntity<Event> updateResponse = restTemplate.exchange(
                 "/api/events/" + eventId,
                 HttpMethod.PUT,

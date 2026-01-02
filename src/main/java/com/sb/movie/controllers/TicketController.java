@@ -8,6 +8,7 @@ import com.sb.movie.response.TicketResponse;
 import com.sb.movie.services.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class TicketController {
 
     @PostMapping("/lock-seats")
     @Operation(summary = "Lock seats temporarily", description = "Lock selected seats for 10 minutes to allow user to complete payment")
-    public ResponseEntity<Object> lockSeats(@RequestBody SeatLockRequest seatLockRequest) {
+    public ResponseEntity<Object> lockSeats(@Valid @RequestBody SeatLockRequest seatLockRequest) {
         try {
             SeatLockResponse result = ticketService.lockSeats(seatLockRequest);
             return new ResponseEntity<>(result, HttpStatus.OK);
@@ -38,7 +39,7 @@ public class TicketController {
 
     @PostMapping("/book")
     @Operation(summary = "Confirm ticket booking", description = "Finalize booking and mark seats as BOOKED (works with or without prior seat lock)")
-    public ResponseEntity<Object> ticketBooking(@RequestBody TicketRequest ticketRequest) {
+    public ResponseEntity<Object> ticketBooking(@Valid @RequestBody TicketRequest ticketRequest) {
         try {
             TicketResponse result = ticketService.ticketBooking(ticketRequest);
             return new ResponseEntity<>(result, HttpStatus.CREATED);
@@ -49,7 +50,7 @@ public class TicketController {
 
     @PostMapping("/release-seats")
     @Operation(summary = "Release locked seats", description = "Manually release locked seats before expiry")
-    public ResponseEntity<Object> releaseSeats(@RequestBody SeatLockRequest seatLockRequest) {
+    public ResponseEntity<Object> releaseSeats(@Valid @RequestBody SeatLockRequest seatLockRequest) {
         try {
             ticketService.releaseSeats(seatLockRequest);
             return new ResponseEntity<>("Seats released successfully", HttpStatus.OK);

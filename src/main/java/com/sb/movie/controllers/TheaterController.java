@@ -37,7 +37,7 @@ public class TheaterController {
                     content = @Content(schema = @Schema(implementation = TheaterResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request data or venue not found")
     })
-    public ResponseEntity<?> addTheater(@RequestBody TheaterRequest request) {
+    public ResponseEntity<?> addTheater(@Valid @RequestBody TheaterRequest request) {
         try {
             TheaterResponse theater = theaterService.addTheater(request);
             return new ResponseEntity<>(theater, HttpStatus.CREATED);

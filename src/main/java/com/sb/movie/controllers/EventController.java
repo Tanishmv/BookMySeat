@@ -5,10 +5,12 @@ import com.sb.movie.enums.EventType;
 import com.sb.movie.enums.Genre;
 import com.sb.movie.enums.Language;
 import com.sb.movie.request.EventRequest;
+import com.sb.movie.request.EventUpdateRequest;
 import com.sb.movie.services.EventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -32,7 +34,7 @@ public class EventController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Add new event", description = "Create a new event (Admin only)")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> addEvent(@RequestBody EventRequest eventRequest) {
+    public ResponseEntity<?> addEvent(@Valid @RequestBody EventRequest eventRequest) {
         try {
             Event event = eventService.addEvent(eventRequest);
             return new ResponseEntity<>(event, HttpStatus.CREATED);
@@ -76,9 +78,9 @@ public class EventController {
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> updateEvent(
             @PathVariable Integer id,
-            @RequestBody EventRequest eventRequest) {
+            @Valid @RequestBody EventUpdateRequest eventUpdateRequest) {
         try {
-            Event event = eventService.updateEvent(id, eventRequest);
+            Event event = eventService.updateEvent(id, eventUpdateRequest);
             return new ResponseEntity<>(event, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);

@@ -4,32 +4,21 @@ import com.sb.movie.enums.EventType;
 import com.sb.movie.enums.Genre;
 import com.sb.movie.enums.Language;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.sql.Date;
 
 @Data
-public class EventRequest {
-    @NotBlank(message = "Event name is required")
+public class EventUpdateRequest {
     private String name;
-
-    @NotNull(message = "Event type is required")
     private EventType eventType;
 
-    @NotNull(message = "Duration is required")
     @Min(value = 1, message = "Duration must be at least 1 minute")
     private Integer duration;
 
     private Double rating;
-
-    @NotNull(message = "Release date is required")
     private Date releaseDate;
-
     private Genre genre;
-
-    @NotNull(message = "Language is required")
     private Language language;
 
     // Event-type specific fields

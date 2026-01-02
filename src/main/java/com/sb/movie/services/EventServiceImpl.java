@@ -9,6 +9,7 @@ import com.sb.movie.exceptions.EventAlreadyExist;
 import com.sb.movie.exceptions.EventDoesNotExist;
 import com.sb.movie.repositories.EventRepository;
 import com.sb.movie.request.EventRequest;
+import com.sb.movie.request.EventUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -82,26 +83,53 @@ public class EventServiceImpl implements EventService {
             put = @org.springframework.cache.annotation.CachePut(value = "eventById", key = "#eventId"),
             evict = @CacheEvict(value = "eventSearch", allEntries = true)
     )
-    public Event updateEvent(Integer eventId, EventRequest eventRequest) {
+    public Event updateEvent(Integer eventId, EventUpdateRequest eventUpdateRequest) {
         log.info("Updating event with ID: {}", eventId);
-
-        // Validate genre usage
-        validateGenreForEventType(eventRequest.getEventType(), eventRequest.getGenre());
 
         Event existingEvent = getEventById(eventId);
 
-        existingEvent.setName(eventRequest.getName());
-        existingEvent.setEventType(eventRequest.getEventType());
-        existingEvent.setDuration(eventRequest.getDuration());
-        existingEvent.setRating(eventRequest.getRating());
-        existingEvent.setReleaseDate(eventRequest.getReleaseDate());
-        existingEvent.setGenre(eventRequest.getGenre());
-        existingEvent.setLanguage(eventRequest.getLanguage());
-        existingEvent.setArtist(eventRequest.getArtist());
-        existingEvent.setDirector(eventRequest.getDirector());
-        existingEvent.setPerformers(eventRequest.getPerformers());
-        existingEvent.setDescription(eventRequest.getDescription());
-        existingEvent.setPosterUrl(eventRequest.getPosterUrl());
+        // Only update fields that are provided (not null)
+        if (eventUpdateRequest.getName() != null) {
+            existingEvent.setName(eventUpdateRequest.getName());
+        }
+        if (eventUpdateRequest.getEventType() != null) {
+            // Validate genre usage only if eventType is being updated
+            validateGenreForEventType(eventUpdateRequest.getEventType(),
+                eventUpdateRequest.getGenre() != null ? eventUpdateRequest.getGenre() : existingEvent.getGenre());
+            existingEvent.setEventType(eventUpdateRequest.getEventType());
+        }
+        if (eventUpdateRequest.getDuration() != null) {
+            existingEvent.setDuration(eventUpdateRequest.getDuration());
+        }
+        if (eventUpdateRequest.getRating() != null) {
+            existingEvent.setRating(eventUpdateRequest.getRating());
+        }
+        if (eventUpdateRequest.getReleaseDate() != null) {
+            existingEvent.setReleaseDate(eventUpdateRequest.getReleaseDate());
+        }
+        if (eventUpdateRequest.getGenre() != null) {
+            // Validate genre usage if genre is being updated
+            validateGenreForEventType(existingEvent.getEventType(), eventUpdateRequest.getGenre());
+            existingEvent.setGenre(eventUpdateRequest.getGenre());
+        }
+        if (eventUpdateRequest.getLanguage() != null) {
+            existingEvent.setLanguage(eventUpdateRequest.getLanguage());
+        }
+        if (eventUpdateRequest.getArtist() != null) {
+            existingEvent.setArtist(eventUpdateRequest.getArtist());
+        }
+        if (eventUpdateRequest.getDirector() != null) {
+            existingEvent.setDirector(eventUpdateRequest.getDirector());
+        }
+        if (eventUpdateRequest.getPerformers() != null) {
+            existingEvent.setPerformers(eventUpdateRequest.getPerformers());
+        }
+        if (eventUpdateRequest.getDescription() != null) {
+            existingEvent.setDescription(eventUpdateRequest.getDescription());
+        }
+        if (eventUpdateRequest.getPosterUrl() != null) {
+            existingEvent.setPosterUrl(eventUpdateRequest.getPosterUrl());
+        }
 
         Event updated = eventRepository.save(existingEvent);
 

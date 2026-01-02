@@ -34,6 +34,10 @@ public class EmailNotificationService {
         log.info("=".repeat(100));
 
         try {
+            // Build and log the text version of the email for simulation
+            String textEmail = buildBookingConfirmationEmail(event);
+            log.info("EMAIL SIMULATION:\n{}", textEmail);
+
             String htmlBody = buildBookingConfirmationEmailHtml(event);
 
             MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -66,6 +70,10 @@ public class EmailNotificationService {
         log.warn("=".repeat(100));
 
         try {
+            // Build and log the text version of the email for simulation
+            String textEmail = buildBookingFailureEmail(event);
+            log.warn("EMAIL SIMULATION:\n{}", textEmail);
+
             String htmlBody = buildBookingFailureEmailHtml(event);
 
             MimeMessage mimeMessage = mailSender.createMimeMessage();

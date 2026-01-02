@@ -11,6 +11,7 @@ import com.sb.movie.repositories.EventRepository;
 import com.sb.movie.repositories.ShowRepository;
 import com.sb.movie.repositories.TheaterRepository;
 import com.sb.movie.request.ShowRequest;
+import com.sb.movie.request.ShowUpdateRequest;
 import com.sb.movie.response.SeatAvailabilityResponse;
 import com.sb.movie.response.SeatInfo;
 import com.sb.movie.response.ShowDetailsResponse;
@@ -49,6 +50,14 @@ public class ShowServiceImpl implements ShowService{
     public Show addShow(ShowRequest showRequest) {
         log.info("Adding new show for event ID: {} at theater ID: {}",
                 showRequest.getEventId(), showRequest.getTheaterId());
+
+        // Validate that seat prices are provided
+        if (showRequest.getPriceOfClassicSeat() == null || showRequest.getPriceOfClassicSeat() <= 0) {
+            throw new IllegalArgumentException("Price for classic seats must be provided and greater than 0");
+        }
+        if (showRequest.getPriceOfPremiumSeat() == null || showRequest.getPriceOfPremiumSeat() <= 0) {
+            throw new IllegalArgumentException("Price for premium seats must be provided and greater than 0");
+        }
 
         Show show = ShowConvertor.showDtoToShow(showRequest);
 
@@ -140,7 +149,7 @@ public class ShowServiceImpl implements ShowService{
                     .filter(seat -> seat.getStatus() == SeatStatus.AVAILABLE)
                     .count();
 
-            Integer price = seats.isEmpty() ? 0 : seats.get(0).getPrice();
+            Integer price = seats.isEmpty() ? 0 : (seats.get(0).getPrice() != null ? seats.get(0).getPrice() : 0);
 
             seatSummary.put(type.name(), ShowDetailsResponse.SeatCategorySummary.builder()
                     .seatType(type.name())
@@ -232,41 +241,28 @@ public class ShowServiceImpl implements ShowService{
                     @CacheEvict(value = "showsGrouped", allEntries = true)
             }
     )
-    public Show updateShow(Integer showId, ShowRequest showRequest) throws ShowDoesNotExists {
+    public Show updateShow(Integer showId, ShowUpdateRequest showUpdateRequest) throws ShowDoesNotExists {
         log.info("Updating show ID: {}", showId);
 
         Show show = showRepository.findById(showId)
                 .orElseThrow(() -> new ShowDoesNotExists());
 
-        // Validate that event and theater cannot be changed
-        if (showRequest.getEventId() != null && !showRequest.getEventId().equals(show.getEvent().getId())) {
-            throw new IllegalArgumentException("Cannot change the event for an existing show");
-        }
-        if (showRequest.getTheaterId() != null && !showRequest.getTheaterId().equals(show.getTheater().getId())) {
-            throw new IllegalArgumentException("Cannot change the theater for an existing show");
-        }
-
         // Validate that new date/time is not in the past
-        if (showRequest.getShowDate() != null || showRequest.getShowStartTime() != null) {
-            Date newDate = showRequest.getShowDate() != null ? showRequest.getShowDate() : show.getDate();
-            java.sql.Time newTime = showRequest.getShowStartTime() != null ? showRequest.getShowStartTime() : show.getTime();
+        Date newDate = showUpdateRequest.getShowDate();
+        java.sql.Time newTime = showUpdateRequest.getShowStartTime();
 
-            LocalDate showDate = newDate.toLocalDate();
-            LocalTime showTime = newTime.toLocalTime();
-            LocalDateTime newShowDateTime = LocalDateTime.of(showDate, showTime);
-            LocalDateTime now = LocalDateTime.now();
+        LocalDate showDate = newDate.toLocalDate();
+        LocalTime showTime = newTime.toLocalTime();
+        LocalDateTime newShowDateTime = LocalDateTime.of(showDate, showTime);
+        LocalDateTime now = LocalDateTime.now();
 
-            if (newShowDateTime.isBefore(now)) {
-                throw new IllegalArgumentException("Cannot update show to a past date/time. Show date/time must be in the future.");
-            }
+        if (newShowDateTime.isBefore(now)) {
+            throw new IllegalArgumentException("Cannot update show to a past date/time. Show date/time must be in the future.");
         }
 
-        if (showRequest.getShowDate() != null) {
-            show.setDate(showRequest.getShowDate());
-        }
-        if (showRequest.getShowStartTime() != null) {
-            show.setTime(showRequest.getShowStartTime());
-        }
+        // Update date and time
+        show.setDate(newDate);
+        show.setTime(newTime);
 
         Show updated = showRepository.save(show);
         log.info("Show ID: {} updated successfully and cache updated", showId);
@@ -323,7 +319,7 @@ public class ShowServiceImpl implements ShowService{
                 .map(seat -> SeatInfo.builder()
                         .seatNo(seat.getSeatNo())
                         .seatType(seat.getSeatType())
-                        .price(seat.getPrice())
+                        .price(seat.getPrice() != null ? seat.getPrice() : 0)
                         .status(seat.getStatus())
                         .build())
                 .collect(Collectors.toList());

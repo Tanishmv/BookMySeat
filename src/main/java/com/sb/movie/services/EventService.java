@@ -5,6 +5,7 @@ import com.sb.movie.enums.EventType;
 import com.sb.movie.enums.Genre;
 import com.sb.movie.enums.Language;
 import com.sb.movie.request.EventRequest;
+import com.sb.movie.request.EventUpdateRequest;
 
 import java.sql.Date;
 import java.util.List;
@@ -16,7 +17,7 @@ public interface EventService {
 
     List<Event> searchEvents(String name, String city, EventType eventType, Genre genre, Language language, Date date);
 
-    Event updateEvent(Integer eventId, EventRequest eventRequest);
+    Event updateEvent(Integer eventId, EventUpdateRequest eventUpdateRequest);
 
     String deleteEvent(Integer eventId);
 }

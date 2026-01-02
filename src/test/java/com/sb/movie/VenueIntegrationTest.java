@@ -4,6 +4,7 @@ import com.sb.movie.controllers.AuthRequest;
 import com.sb.movie.enums.Gender;
 import com.sb.movie.request.UserRequest;
 import com.sb.movie.request.VenueRequest;
+import com.sb.movie.request.VenueUpdateRequest;
 import com.sb.movie.response.AuthResponse;
 import com.sb.movie.response.VenueResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -117,13 +118,11 @@ class VenueIntegrationTest extends BaseIntegrationTest {
         assertThat(getByCityResponse.getBody().length).isGreaterThan(0);
 
         // ========== UPDATE (U) ==========
-        VenueRequest updateRequest = new VenueRequest();
+        VenueUpdateRequest updateRequest = new VenueUpdateRequest();
         updateRequest.setName("Phoenix Marketcity - Updated");
-        updateRequest.setAddress("142, Lal Bahadur Shastri Rd, Kurla West, Mumbai");
-        updateRequest.setCity("Mumbai");
         updateRequest.setDescription("Updated description - Premium mall with world-class facilities");
 
-        HttpEntity<VenueRequest> updateReq = new HttpEntity<>(updateRequest, headers);
+        HttpEntity<VenueUpdateRequest> updateReq = new HttpEntity<>(updateRequest, headers);
         ResponseEntity<com.sb.movie.response.VenueResponse> updateResponse = restTemplate.exchange(
                 "/venue/" + venueId,
                 HttpMethod.PUT,

@@ -3,6 +3,7 @@ package com.sb.movie.services;
 import com.sb.movie.entities.Show;
 import com.sb.movie.exceptions.ShowDoesNotExists;
 import com.sb.movie.request.ShowRequest;
+import com.sb.movie.request.ShowUpdateRequest;
 import com.sb.movie.response.SeatAvailabilityResponse;
 import com.sb.movie.response.ShowDetailsResponse;
 
@@ -22,7 +23,7 @@ public interface ShowService {
 
     Map<String, Map<String, List<Show>>> getShowsGroupedByDateAndVenue();
 
-    Show updateShow(Integer showId, ShowRequest showRequest) throws ShowDoesNotExists;
+    Show updateShow(Integer showId, ShowUpdateRequest showUpdateRequest) throws ShowDoesNotExists;
 
     String deleteShow(Integer showId) throws ShowDoesNotExists;
 

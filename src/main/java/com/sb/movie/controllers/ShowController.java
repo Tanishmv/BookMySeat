@@ -2,11 +2,13 @@ package com.sb.movie.controllers;
 
 import com.sb.movie.entities.Show;
 import com.sb.movie.request.ShowRequest;
+import com.sb.movie.request.ShowUpdateRequest;
 import com.sb.movie.response.SeatAvailabilityResponse;
 import com.sb.movie.response.ShowDetailsResponse;
 import com.sb.movie.services.ShowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -30,7 +32,7 @@ public class ShowController {
     @Operation(summary = "Create new show with seats",
                description = "Create a new show for an event at a specific venue with seat prices (Admin only). " +
                            "Seats are automatically created based on theater seats.")
-    public ResponseEntity<?> addShow(@RequestBody ShowRequest showRequest) {
+    public ResponseEntity<?> addShow(@Valid @RequestBody ShowRequest showRequest) {
         try {
             Show show = showService.addShow(showRequest);
             return new ResponseEntity<>(show, HttpStatus.CREATED);
@@ -89,9 +91,9 @@ public class ShowController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Update show", description = "Update show date and time")
-    public ResponseEntity<?> updateShow(@PathVariable Integer id, @RequestBody ShowRequest showRequest) {
+    public ResponseEntity<?> updateShow(@PathVariable Integer id, @Valid @RequestBody ShowUpdateRequest showUpdateRequest) {
         try {
-            Show show = showService.updateShow(id, showRequest);
+            Show show = showService.updateShow(id, showUpdateRequest);
             return new ResponseEntity<>(show, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);

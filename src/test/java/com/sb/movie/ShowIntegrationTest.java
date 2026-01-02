@@ -185,11 +185,11 @@ class ShowIntegrationTest extends BaseIntegrationTest {
         assertThat(getDetailsResponse.getBody().getTheater().getName()).isEqualTo("Screen 1");
 
         // ========== UPDATE (U) - Valid Future Date ==========
-        ShowRequest updateRequest = new ShowRequest();
+        ShowUpdateRequest updateRequest = new ShowUpdateRequest();
         updateRequest.setShowDate(Date.valueOf(LocalDate.now().plusDays(10))); // New future date
         updateRequest.setShowStartTime(Time.valueOf(LocalTime.of(20, 0, 0))); // New time
 
-        HttpEntity<ShowRequest> updateReq = new HttpEntity<>(updateRequest, headers);
+        HttpEntity<ShowUpdateRequest> updateReq = new HttpEntity<>(updateRequest, headers);
         ResponseEntity<Show> updateResponse = restTemplate.exchange(
                 "/api/shows/" + showId,
                 HttpMethod.PUT,
@@ -248,11 +248,11 @@ class ShowIntegrationTest extends BaseIntegrationTest {
         Integer showId = searchResponse.getBody()[searchResponse.getBody().length - 1].getShowId();
 
         // Try to update with past date - should fail
-        ShowRequest invalidUpdateRequest = new ShowRequest();
+        ShowUpdateRequest invalidUpdateRequest = new ShowUpdateRequest();
         invalidUpdateRequest.setShowDate(Date.valueOf(LocalDate.now().minusDays(1))); // Past date
         invalidUpdateRequest.setShowStartTime(Time.valueOf(LocalTime.of(10, 0, 0)));
 
-        HttpEntity<ShowRequest> updateReq = new HttpEntity<>(invalidUpdateRequest, headers);
+        HttpEntity<ShowUpdateRequest> updateReq = new HttpEntity<>(invalidUpdateRequest, headers);
         ResponseEntity<String> updateResponse = restTemplate.exchange(
                 "/api/shows/" + showId,
                 HttpMethod.PUT,

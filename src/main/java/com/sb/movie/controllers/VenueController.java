@@ -1,6 +1,7 @@
 package com.sb.movie.controllers;
 
 import com.sb.movie.request.VenueRequest;
+import com.sb.movie.request.VenueUpdateRequest;
 import com.sb.movie.response.VenueResponse;
 import com.sb.movie.services.VenueService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +37,7 @@ public class VenueController {
                     content = @Content(schema = @Schema(implementation = VenueResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request data or venue already exists at the address")
     })
-    public ResponseEntity<?> addVenue(@RequestBody VenueRequest request) {
+    public ResponseEntity<?> addVenue(@Valid @RequestBody VenueRequest request) {
         try {
             VenueResponse venue = venueService.addVenue(request);
             return new ResponseEntity<>(venue, HttpStatus.CREATED);
@@ -94,7 +96,7 @@ public class VenueController {
     @PutMapping("/{id}")
     @Operation(
             summary = "Update venue details",
-            description = "Updates venue information including name, address, city, and description."
+            description = "Updates venue information. Only provided fields will be updated (partial updates supported)."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Venue updated successfully",
@@ -105,7 +107,7 @@ public class VenueController {
     public ResponseEntity<?> updateVenue(
             @Parameter(description = "Venue ID", required = true)
             @PathVariable Integer id,
-            @RequestBody VenueRequest request) {
+            @Valid @RequestBody VenueUpdateRequest request) {
         try {
             com.sb.movie.response.VenueResponse venue = venueService.updateVenue(id, request);
             return new ResponseEntity<>(venue, HttpStatus.OK);
