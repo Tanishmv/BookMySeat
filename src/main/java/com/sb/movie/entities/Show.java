@@ -15,7 +15,11 @@ import java.sql.Date;
 import java.util.List;
 
 @Entity
-@Table(name = "SHOWS")
+@Table(name = "SHOWS",
+       uniqueConstraints = @UniqueConstraint(
+               name = "unique_theater_date_time",
+               columnNames = {"theater_id", "date", "time"}
+       ))
 @Data
 @Builder
 @NoArgsConstructor

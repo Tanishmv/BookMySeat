@@ -5,6 +5,7 @@ import com.sb.movie.entities.*;
 import com.sb.movie.enums.SeatStatus;
 import com.sb.movie.enums.SeatType;
 import com.sb.movie.exceptions.EventDoesNotExist;
+import com.sb.movie.exceptions.ShowAlreadyExistsException;
 import com.sb.movie.exceptions.ShowDoesNotExists;
 import com.sb.movie.exceptions.TheaterDoesNotExists;
 import com.sb.movie.repositories.EventRepository;
@@ -75,6 +76,21 @@ public class ShowServiceImpl implements ShowService{
 
         Theater theater = theaterOpt.get();
         Event event = eventOpt.get();
+
+        // Check if a show already exists at the same theater, date, and time
+        boolean showExists = showRepository.existsByTheaterAndDateAndTime(
+                showRequest.getTheaterId(),
+                showRequest.getShowDate(),
+                showRequest.getShowStartTime()
+        );
+
+        if (showExists) {
+            throw new ShowAlreadyExistsException(
+                    "A show already exists at " + theater.getName() +
+                    " on " + showRequest.getShowDate() +
+                    " at " + showRequest.getShowStartTime()
+            );
+        }
 
         show.setEvent(event);
         show.setTheater(theater);
@@ -258,6 +274,21 @@ public class ShowServiceImpl implements ShowService{
 
         if (newShowDateTime.isBefore(now)) {
             throw new IllegalArgumentException("Cannot update show to a past date/time. Show date/time must be in the future.");
+        }
+
+        // Check if another show already exists at the new date/time (excluding current show)
+        boolean showExists = showRepository.existsByTheaterAndDateAndTimeExcludingShow(
+                show.getTheater().getId(),
+                newDate,
+                newTime,
+                showId
+        );
+
+        if (showExists) {
+            throw new ShowAlreadyExistsException(
+                    "Another show already exists at " + show.getTheater().getName() +
+                    " on " + newDate + " at " + newTime
+            );
         }
 
         // Update date and time

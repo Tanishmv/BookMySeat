@@ -21,4 +21,10 @@ public interface TheaterRepository extends JpaRepository<Theater, Integer> {
     List<Theater> searchTheaters(@Param("name") String name,
                                  @Param("city") String city,
                                  @Param("venueId") Integer venueId);
+
+    @Query("SELECT COUNT(t) > 0 FROM Theater t WHERE " +
+           "LOWER(t.name) = LOWER(:name) AND " +
+           "t.venue.id = :venueId")
+    boolean existsByNameAndVenueId(@Param("name") String name,
+                                   @Param("venueId") Integer venueId);
 }

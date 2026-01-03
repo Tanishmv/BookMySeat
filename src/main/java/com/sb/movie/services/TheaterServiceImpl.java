@@ -43,6 +43,17 @@ public class TheaterServiceImpl implements TheaterService{
                 .orElseThrow(() -> new RuntimeException("Venue not found with ID: " + theaterRequest.getVenueId()));
         theater.setVenue(venue);
 
+        // Check if theater with same name already exists at this venue
+        boolean theaterExists = theaterRepository.existsByNameAndVenueId(
+                theaterRequest.getName(),
+                theaterRequest.getVenueId()
+        );
+
+        if (theaterExists) {
+            throw new TheaterIsExist("Theater with name '" + theaterRequest.getName() +
+                    "' already exists at " + venue.getName());
+        }
+
         // Create seats automatically
         Integer noOfSeatsInRow = theaterRequest.getNoOfSeatInRow();
         Integer noOfPremiumSeats = theaterRequest.getNoOfPremiumSeat();

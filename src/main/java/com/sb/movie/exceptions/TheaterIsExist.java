@@ -6,4 +6,8 @@ public class TheaterIsExist extends RuntimeException{
     public TheaterIsExist() {
         super("Theater is already Present on this Address");
     }
+
+    public TheaterIsExist(String message) {
+        super(message);
+    }
 }
