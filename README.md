@@ -90,24 +90,27 @@ A backend API for event and ticket booking built with Spring Boot. Allows users 
 
 ### Setup
 
-1. **Start infrastructure services**
+1. **Start all services (including the app)**
    ```bash
    docker-compose up -d
    ```
 
-2. **Build the application**
-   ```bash
-   mvn clean install
-   ```
-
-3. **Run the application**
-   ```bash
-   mvn spring-boot:run
-   ```
-
-4. **Access the application**
+2. **Access the application**
    - API: `http://localhost:8081`
    - Swagger UI: `http://localhost:8081/swagger-ui.html`
+
+### Alternative: Run locally (without Docker)
+
+1. **Start infrastructure services only**
+   ```bash
+   docker-compose up -d postgres redis kafka zookeeper
+   ```
+
+2. **Build and run the application**
+   ```bash
+   mvn clean install
+   mvn spring-boot:run
+   ```
 
 ---
 
@@ -145,7 +148,8 @@ A backend API for event and ticket booking built with Spring Boot. Allows users 
 - `type` - Filter by event type
 - `genre` - Filter by genre
 - `language` - Filter by language
-- `date` - Filter by date (yyyy-MM-dd)
+- `showDate` - Filter by show date (yyyy-MM-dd)
+- `releaseDate` - Filter by release date (yyyy-MM-dd)
 
 **Event Types:** `MOVIE`, `CONCERT`, `THEATER`, `DANCE_SHOW`, `COMEDY_SHOW`, `OPERA`
 
