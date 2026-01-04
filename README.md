@@ -144,7 +144,7 @@ BookMYSeat is a **production-grade event booking platform** built with Spring Bo
 5. **Access the application**
    - **API Base URL**: http://localhost:8081
    - **Swagger UI**: http://localhost:8081/swagger-ui.html
-   - **pgAdmin**: http://localhost:5051 (Credentials: `admin@admin.com` / `admin`)
+   - **pgAdmin**: http://localhost:5051 (Credentials: `admin`)
    - **RedisInsight**: http://localhost:5540
    - **Kafka UI**: http://localhost:8090
 
